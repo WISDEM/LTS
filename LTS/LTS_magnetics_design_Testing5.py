@@ -8,7 +8,7 @@ McDonald,A.S. et al. IET Renewable Power Generation(2008),2(1):3 http://dx.doi.o
 import pandas as pd
 import numpy as np
 import openmdao.api as om
-from Geometry_fea_torque3 import FEMM_Geometry
+from Geometry_fea_torque5 import FEMM_Geometry
 
 class LTS_active(om.ExplicitComponent):
 
@@ -401,7 +401,7 @@ if __name__ == "__main__":
     prob.driver.recording_options["record_objectives"] = True
 
     prob.model.add_design_var("D_a", lower=7, upper=8, ref=7.5)
-    prob.model.add_design_var("delta_em", lower=0.010, upper=0.030, ref=0.01)
+    prob.model.add_design_var("delta_em", lower=0.060, upper=0.10, ref=0.08)
     prob.model.add_design_var("h_sc", lower=0.03, upper=0.25, ref=0.01)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     prob.model.add_design_var("p", lower=10, upper=30, ref=20)
