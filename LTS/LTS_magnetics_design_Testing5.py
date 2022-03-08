@@ -191,7 +191,7 @@ class LTS_active(om.ExplicitComponent):
         z = outputs["S"]  # Number of coils
         #A_slot = inputs["h_s"] * outputs["b_s"] # UNUSED
         #d_cu = 2 * np.sqrt(outputs["A_Cuscalc"] / pi) # UNUSED
-        outputs["A_Cuscalc"] = 2*inputs["I_s"] * 1e-06 / (inputs["J_s"])
+        outputs["A_Cuscalc"] = inputs["I_s"] * 1e-06 / (inputs["J_s"])
         #k_fill = A_slot / (2 * inputs["N_c"] * outputs["A_Cuscalc"]) # UNUSED
         outputs["N_s"] = int(inputs["N_c"])* z / (m)  # turns per phase
         
@@ -203,7 +203,7 @@ class LTS_active(om.ExplicitComponent):
             * inputs["J_s"]*1000000
             / (2 * (inputs["I_s"]))
         )
-        print ("Resitance per phase:" ,outputs["R_s"])
+        #print ("Resitance per phase:" ,outputs["R_s"])
         # r_strand                =0.425e-3
         # inputs['N_sc']         =  inputs['k_pf_sc']*outputs['W_sc']*inputs['h_sc']/pi*r_strand**2
         outputs["theta_p"] = np.rad2deg(outputs["tau_p"] / (outputs["R_sc"] + inputs["h_sc"]))
@@ -262,7 +262,7 @@ class LTS_active(om.ExplicitComponent):
         outputs["P_add"] = 0.01 * inputs["P_rated"]
         outputs["P_brushes"] = 2 * inputs["U_b"] * inputs["I_s"]
         
-        print (inputs["N_sc"],inputs["I_s"], outputs["p1"], inputs["D_a"],inputs["delta_em"], inputs["N_c"],outputs["S"])
+        #print (inputs["N_sc"],inputs["I_s"], outputs["p1"], inputs["D_a"],inputs["delta_em"], inputs["N_c"],outputs["S"])
 
         #print(outputs["mass_SC"])
 
@@ -309,10 +309,10 @@ class Results(om.ExplicitComponent):
 
         # Calculating  voltage per phase
         om_m = 2 * np.pi * inputs["N_nom"] / 60
-        outputs["E_p"] = inputs["l_s"]*(inputs["D_sc"] * 0.5 * inputs["k_w1"] * inputs["B_g"] * om_m * inputs["N_s"])/2**0.5
+        outputs["E_p"] = inputs["l_s"]*(inputs["D_sc"] * 0.5 * inputs["k_w1"] * inputs["B_g"] * om_m * inputs["N_s"])
         
         
-        print ("Voltage and lengths are:",outputs["E_p"],inputs["l_s"] )
+        #print ("Voltage and lengths are:",outputs["E_p"],inputs["l_s"] )
         
 
         om_e = inputs["p1"] * om_m
@@ -406,7 +406,7 @@ if __name__ == "__main__":
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     prob.model.add_design_var("p", lower=10, upper=30, ref=20)
     prob.model.add_design_var("h_yr", lower=0.01, upper=0.4, ref=0.1)
-    prob.model.add_design_var("l_s", lower=1, upper=3, ref=1.625)
+    prob.model.add_design_var("l_s", lower=1, upper=2.5, ref=1.625)
     prob.model.add_design_var("alpha", lower=0.5, upper=20, ref=10)
     prob.model.add_design_var("dalpha", lower=1, upper=10, ref=10)
     # prob.model.add_design_var('beta', lower=0.75, upper=20,ref=10)
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.0)
     prob.model.add_constraint("con_angle2", lower=0.0)
-    prob.model.add_constraint("E_p", lower=3300, upper=3350)
+    #prob.model.add_constraint("E_p", lower=3300, upper=3350)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
     prob.model.add_constraint("B_rymax", upper=2.1)
 
@@ -468,21 +468,20 @@ if __name__ == "__main__":
     prob["P_rated"] = 17e6
     prob["T_rated"] = 23.07e6  # rev 1 9.94718e6
     prob["N_nom"] = 7.7  # 7.5598598  #8.68                # rpm 9.6
-    prob["l_s"] = 2.5  # 8.68                # rpm 9.6
-    prob["D_a"] = 7.75  # rev 1 6.8
+    prob["l_s"] = 1.00390095  # 8.68                # rpm 9.6
+    prob["D_a"] = 7.74736313  # rev 1 6.8
     prob["delta_em"] = 0.02  # rev 2.1
-    prob["h_s"] = 0.18  # rev 1 0.3
+    prob["h_s"] = 0.1803019703  # rev 1 0.3
     prob["p"] = 21 # 100.0    # rev 1 160
-    prob["h_sc"] = 0.05  # rev 1 0.034
-    prob["h_yr"] = 0.125  # rev 1 0.045
-    prob["alpha"] = 0.5  # rev 1 0.045
+    prob["h_sc"] = 0.0503409354 # rev 1 0.034
+    prob["h_yr"] = 0.1254730934  # rev 1 0.045
+    prob["alpha"] = 0.53805442  # rev 1 0.045
     prob["dalpha"] = 1.0  # rev 1 0.045
-    prob["alpha_p"] = 0.65
     # prob['beta']        =   1.75 # rev 1 0.045
-    prob["I_sc"] = 400  # rev 1 0.045
-    prob["N_sc"] = 1700  # rev 1 0.045
+    prob["I_sc"] = 400.4427393  # rev 1 0.045
+    prob["N_sc"] = 1502  # rev 1 0.045
     prob["N_c"] = 2
-    prob["I_s"] = 3000
+    prob["I_s"] = 2995.06090335
     prob["J_s"] = 3.0
 
     # Material properties
@@ -490,12 +489,12 @@ if __name__ == "__main__":
     prob["rho_Copper"] = 8900.0  # Kg/m3 copper density
     prob["rho_NbTi"] = 8442.37093661195  # magnet density
     prob["rho_Cu"] = 1.8e-8 * 1.4  # Copper resisitivty
-    prob["U_b"] = 120
+    prob["U_b"] = 2     # brush contact voltage
     prob["Y"] = 10                 #Short pitch
 
     #prob.model.approx_totals(method="fd")
 
-    prob.run_model()
+    #prob.run_model()
     prob.run_driver()
 
     prob.model.list_outputs(values = True, hierarchical=True)

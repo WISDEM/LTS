@@ -91,28 +91,28 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
 # the depth dimension, and an angle constraint of 30 degrees
 
 
-def B_r_B_t(D_a, l_s, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p):
+def B_r_B_t(D_a, l_s, p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p):
 
     theta_p_d = np.rad2deg(theta_p_r)
     
     
     femm.openfemm(1)
     femm.opendocument("coil_design_new.fem")
-    T_elec = theta_p_r * 2 / (4*6)
-    femm.mi_modifycircprop("A+", 1, I_s * np.cos(0))
-    femm.mi_modifycircprop("D+", 1, I_s * np.cos(np.pi / 6))
-    femm.mi_modifycircprop("C-", 1, I_s * np.cos(2 * np.pi / 6))
-    femm.mi_modifycircprop("F-", 1, I_s * np.cos(3*np.pi/6))
-    femm.mi_modifycircprop("B+", 1, I_s * np.cos(4 * np.pi /6))
-    femm.mi_modifycircprop("E+", 1, I_s * np.cos(5 * np.pi / 6))
-    femm.mi_modifycircprop("A-", 1, -I_s * np.cos(0))
-    femm.mi_modifycircprop("D-", 1, -I_s * np.cos(1 * np.pi / 6))
+    T_elec = -0.5
+    femm.mi_modifycircprop("A+", 1, I_s * np.sin(0))
+    femm.mi_modifycircprop("D+", 1, I_s * np.sin(1*np.pi / 6))
+    femm.mi_modifycircprop("C-", 1, -I_s * np.sin(-4 * np.pi / 6))
+    femm.mi_modifycircprop("F-", 1, -I_s * np.sin(-3*np.pi/6))
+    femm.mi_modifycircprop("B+", 1, I_s * np.sin(-8 * np.pi / 6))
+    femm.mi_modifycircprop("E+", 1, I_s * np.sin(-7 * np.pi / 6))
+    femm.mi_modifycircprop("A-", 1, -I_s * np.sin(0))
+    femm.mi_modifycircprop("D-", 1, -I_s * np.sin(np.pi / 6))
     femm.mi_saveas("coil_design_new_I1.fem")
     femm.mi_analyze()
     femm.mi_loadsolution()
 
-    femm.mo_addcontour((D_a / 2 + delta_em) * np.cos(0), (D_a / 2 + delta_em) * np.sin(0))
-    femm.mo_addcontour((D_a / 2 + delta_em) * np.cos(theta_p_r), (D_a / 2 + delta_em) * np.sin(theta_p_r))
+    femm.mo_addcontour((D_a / 2 + delta_em*0.5) * np.cos(0), (D_a / 2 + delta_em*0.5) * np.sin(0))
+    femm.mo_addcontour((D_a / 2 + delta_em*0.5) * np.cos(theta_p_r), (D_a / 2 + delta_em*0.5) * np.sin(theta_p_r))
     femm.mo_bendcontour(theta_p_d, 0.25)
     femm.mo_makeplot(2, 100, "B_r_1.csv", 1)
     femm.mo_makeplot(3, 100, "B_t_1.csv", 1)
@@ -152,23 +152,19 @@ def B_r_B_t(D_a, l_s, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, l
         femm.mi_clearselected()
         count = count + 1
 
-    femm.mi_modifycircprop("A+", 1, I_s * np.cos(T_elec))
-    femm.mi_modifycircprop("D+", 1, I_s * np.cos(T_elec - np.pi / 6))
-    femm.mi_modifycircprop("C-", 1, I_s * np.cos(T_elec  - 2 * np.pi / 6))
-    femm.mi_modifycircprop("F-", 1, I_s * np.cos(T_elec  - 3*np.pi/6))
-    femm.mi_modifycircprop("B+", 1, I_s * np.cos(T_elec  - 4 * np.pi / 6))
-    femm.mi_modifycircprop("E+", 1,I_s * np.cos(T_elec  - 5 * np.pi / 6))
-    femm.mi_modifycircprop("A-", 1, -I_s * np.cos(T_elec))
-    femm.mi_modifycircprop("D-", 1, -I_s * np.cos(T_elec - np.pi / 6))
-    femm.mi_modifycircprop("C+", 1, -I_s * np.cos(T_elec - 2*np.pi / 6))
-    femm.mi_modifycircprop("F+", 1, -I_s * np.cos(T_elec - 3*np.pi / 6))
-    femm.mi_modifycircprop("B-", 1,-I_s * np.cos(T_elec  - 4 * np.pi / 6))
-    femm.mi_modifycircprop("E-", 1,-I_s * np.cos(T_elec  - 5 * np.pi / 6))
+    femm.mi_modifycircprop("D+", 1, I_s * np.sin(T_elec + np.pi / 6))
+    femm.mi_modifycircprop("C-", 1, -I_s * np.sin(T_elec  -4 * np.pi / 6))
+    femm.mi_modifycircprop("F-", 1, -I_s * np.sin(T_elec  - 3*np.pi/6))
+    femm.mi_modifycircprop("B+", 1, I_s * np.sin(T_elec  - 8 * np.pi / 6))
+    femm.mi_modifycircprop("E+", 1,I_s * np.sin(T_elec  - 7 * np.pi / 6))
+    femm.mi_modifycircprop("A-", 1, -I_s * np.sin(T_elec))
+    femm.mi_modifycircprop("D-", 1, -I_s * np.sin(T_elec+np.pi / 6))
+    
     femm.mi_saveas("coil_design_new_I2.fem")
     femm.mi_analyze()
     femm.mi_loadsolution()
-    femm.mo_addcontour((D_a / 2 + delta_em) * np.cos(0), (D_a / 2 + delta_em) * np.sin(0))
-    femm.mo_addcontour((D_a / 2 + delta_em) * np.cos(theta_p_r), (D_a / 2 + delta_em) * np.sin(theta_p_r))
+    femm.mo_addcontour((D_a / 2 + delta_em*0.5) * np.cos(0), (D_a / 2 + delta_em*0.5) * np.sin(0))
+    femm.mo_addcontour((D_a / 2 + delta_em*0.5) * np.cos(theta_p_r), (D_a / 2 + delta_em*0.5) * np.sin(theta_p_r))
     femm.mo_bendcontour(theta_p_d, 0.25)
     femm.mo_makeplot(2, 100, "B_r_2.csv", 1)
     femm.mo_makeplot(3, 100, "B_t_2.csv", 1)
@@ -770,8 +766,10 @@ class FEMM_Geometry(om.ExplicitComponent):
             outputs["margin_I_c"] = float(3.5357 * outputs["B_coil_max"]**2 - 144.79 * outputs["B_coil_max"] + 1116.0)
             outputs["Critical_current_limit"]=outputs["margin_I_c"]-I_sc
             outputs["Coil_max_limit"]=B_o-outputs["B_coil_max"]
-            outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(D_a, l_s, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
-            print ("Outputs:",alpha_r*180/np.pi,outputs["Torque_actual"]/1e6, outputs["Sigma_shear"]/1e3, outputs["B_coil_max"],outputs["Sigma_normal"])
+            outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(D_a, l_s,p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
+            
+            #print (D_a, l_s,p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
+            #print ("Outputs:",alpha_r*180/np.pi,outputs["Torque_actual"]/1e6, outputs["Sigma_shear"]/1e3, outputs["B_coil_max"],outputs["Sigma_normal"])
             #femm.mo_close()
             '''
             if float(outputs["B_g"]) > 2.1:
