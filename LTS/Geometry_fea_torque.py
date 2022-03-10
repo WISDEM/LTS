@@ -1,33 +1,16 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Dec 31 12:28:24 2021
 
 @author: lsethura
 """
-# Wound Copper Coil with an Iron Core
-# David Meeker
-# dmeeker@ieee.org
-#
-# This program consider an axisymmetric magnetostatic problem
-# of a cylindrical coil with an axial length of 100 mm, an
-# inner radius of 50 mm, and an outer radius of 100 mm.  The
-# coil has 200 turns and the coil current is 20 Amps. There is
-# an iron bar 80 mm long with a radius of 10 mm centered co-
-# axially with the coil.  The objective of the analysis is to
-# determine the flux density at the center of the iron bar,
-# and to plot the field along the r=0 axis. This analysis
-# defines a nonlinear B-H curve for the iron and employs an
-# asymptotic boundary condition to approximate an "open"
-# boundary condition on the edge of the solution domain.
 
 import femm
 import numpy as np
 import openmdao.api as om
-
-# The package must be initialized with the openfemm command.
-
+import os
 
 def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n):
+    # After looking at the femm results, this function post-processes them, no electrical load condition
 
     theta_p_d = np.rad2deg(theta_p_r)
 
@@ -81,20 +64,19 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     force = np.sum((B_r_normal[:,1]) ** 2 - (B_t_normal[:,1]) ** 2) * delta_L
     sigma_n = abs(1 / (8 * np.pi * 1e-7) * force) / circ
 
-    # print ((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r),(radius_sc)*np.cos(alpha_r),(radius_sc)*np.sin(alpha_r),(radius_sc+h_sc)*np.cos(alpha_r),(radius_sc+h_sc)*np.sin(alpha_r),(radius_sc+h_sc)*np.cos(beta_r),(radius_sc+h_sc)*np.sin(beta_r),(radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
+    # print ((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r),(radius_sc)*np.cos(alpha_r),(radius_sc)*np.sin(alpha_r),
+    # (radius_sc+h_sc)*np.cos(alpha_r),(radius_sc+h_sc)*np.sin(alpha_r),(radius_sc+h_sc)*np.cos(beta_r),
+    # (radius_sc+h_sc)*np.sin(beta_r),(radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
 
+    # B_g_peak: peak air-gap flux density
+    # B_rymax: peak rotor yoke flux density
+    # B_coil_max: peak flux density in the superconducting coil
+    # sigma_n: max normal stress 
     return B_g_peak, B_rymax, B_coil_max, sigma_n
 
-
-# Define the problem type.  Magnetostatic; Units of mm; Axisymmetric;
-# Precision of 10^(-8) for the linear solver; a placeholder of 0 for
-# the depth dimension, and an angle constraint of 30 degrees
-
-
 def B_r_B_t(D_a, l_s, p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p):
-
+    # This function loads the machine with electrical currents
     theta_p_d = np.rad2deg(theta_p_r)
-    
     
     femm.openfemm(1)
     femm.opendocument("coil_design_new.fem")
@@ -182,17 +164,28 @@ def B_r_B_t(D_a, l_s, p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1
     sigma_t = abs(1 / (4 * np.pi * 1e-7) * force) / circ
     torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s
     
+    print('Torque values in MNm:')
     print (torque[0]/1e6,torque[1]/1e6)
 
+    # Air gap electro-magnetic torque for the full machine
+    # Average shear stress for the full machine
     return torque.mean(), sigma_t.mean()
 
 
 class FEMM_Geometry(om.ExplicitComponent):
-
+    # This openmdao component builds the geometry of one sector of the LTS generator in pyfemm and runs the analysis
+    
+    def initialize(self):
+        self.options.declare("modeling_options")
+    
     def setup(self):
+        self.output_dir = self.options["modeling_options"]["output_dir"]
+
+        # Discrete inputs
         self.add_discrete_input("q", 2, desc="slots_per_pole")
         self.add_discrete_input("m", 6, desc="number of phases")
-
+        
+        # Float nputs
         self.add_input("l_s", 0.0, units="m", desc="Stack length ")
         self.add_input("alpha", 0.0, units="deg", desc="Start angle of field coil")
         self.add_input("beta", 0.0, units="deg", desc="End angle of field coil")
@@ -201,27 +194,23 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("D_a", 0.0, units="m", desc="armature diameter ")
         self.add_input("h_s", 0.0, units="m", desc="Slot height ")
         self.add_input("h_yr", 0.0, units="m", desc="rotor yoke height")
-        #self.add_input("Y", 0.0, desc="coil pitch")
         self.add_input("D_sc", 0.0, units="m", desc="field coil diameter ")
-        #self.add_input("Dia_sc", 0.0, units="m", desc="field coil diameter")
-        self.add_input("I_sc", 0.0, units="A", desc="SC current ")
-        #self.add_input("N_s", 0.0, desc="Number of turns per phase in series")
+        self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
-
+        
+        # Outputs
         self.add_output("B_g", 0.0, desc="Peak air gap flux density ")
         self.add_output("B_rymax", 0.0, desc="Peak Rotor yoke flux density")
         self.add_output("B_coil_max", 0.0, desc="Peak flux density in the field coils")
-        #self.add_output("I_sc_out", 0.0, units="A", desc="SC current ")
-        #self.add_output("N_sc_out", 0.0, desc="Number of turns of SC field coil")
         self.add_output("Torque_actual", 0.0, units="N*m", desc="Shear stress actual")
         self.add_output("Sigma_shear", 0.0, units="Pa", desc="Shear stress")
         self.add_output("Sigma_normal", 0.0, units="Pa", desc="Normal stress")
         self.add_output("margin_I_c",0.0,units="A", desc="Critical current margin")
-        self.add_output("Critical_current_limit",0.0,units="A", desc="Critical current limit") 
-        self.add_output("Coil_max_limit",0.0, desc="Critical coil flux density limit") 
+        self.add_output("Critical_current_ratio",0.0,units="A", desc="Ratio of critical to max current") 
+        self.add_output("Coil_max_ratio",0.0, desc="Ratio of actual to critical coil flux density, usually constrained to be smaller than 1") 
         self.add_output("a_m", 0.0, units="m", desc="Coil separation distance")
         self.add_output("W_sc", 0.0, units="m", desc="SC coil width")
         self.add_output("Outer_width", 0.0, units="m", desc="Coil outer width")
@@ -242,10 +231,8 @@ class FEMM_Geometry(om.ExplicitComponent):
         h_s = float(inputs["h_s"])
         q = discrete_inputs["q"]
         m = discrete_inputs["m"]
-        #Y = float(inputs["Y"])
         D_sc = float(inputs["D_sc"])
-        #Dia_sc = float(inputs["Dia_sc"])
-        N_sc = int(inputs["N_sc"])   # 
+        N_sc = int(inputs["N_sc"]) 
         I_sc = float(inputs["I_sc"])
         N_c = int(inputs["N_c"])
         delta_em = float(inputs["delta_em"])
@@ -255,6 +242,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         theta_p_r = tau_p / (radius_sc + h_sc)
         theta_p_d = np.rad2deg(theta_p_r)
         
+        # Build the geometry of the generator sector
         if (alpha_d <=0) or (beta_d>theta_p_d*0.5):
            outputs["B_g"] =7
            outputs["B_coil_max"]=12
@@ -281,12 +269,8 @@ class FEMM_Geometry(om.ExplicitComponent):
             theta_b_s = b_s / (D_a * 0.5)
             #theta_tau_s = tau_s / (D_a * 0.5) # UNUSED
             theta_b_t = (b_t) / (D_a * 0.5)
-    
-            
             tau_p = np.pi * (radius_sc * 2 + 2 * h_sc) / (2 * p1)
             Current = 0
-    
-            
             theta_p_d = np.rad2deg(theta_p_r)
             alphap_taup_r = theta_p_r - 2*beta_r
             alphap_taup_angle_r = beta_r + alphap_taup_r - alpha_r
@@ -385,10 +369,6 @@ class FEMM_Geometry(om.ExplicitComponent):
             xlabel2=(clabel-clabel3)/(mlabel3-mlabel)
             ylabel2=mlabel*xlabel2+clabel
             
-            
-             
-            
-    
             outputs["a_m"]  =2*(np.sqrt((radius_sc*np.cos(theta_p_r*0.5)-x4)**2+((radius_sc*np.sin(theta_p_r*0.5)-y4)**2)))
             outputs["W_sc"] =np.sqrt((x1-x4)**2+(y1-y4)**2)
             outputs["Outer_width"] = outputs["a_m"] + 2 * outputs["W_sc"]
@@ -408,14 +388,9 @@ class FEMM_Geometry(om.ExplicitComponent):
             femm.mi_addsegment(x8,y8,x7,y7)
             femm.mi_addsegment(x5,y5,x8,y8)
             femm.mi_addsegment(x6,y6,x7,y7)
-    
-    
-  
-    
             femm.mi_addnode(0, 0)
         
             # Draw the stator slots and Stator coils
-    
             femm.mi_addnode(D_a / 2 * np.cos(0), D_a / 2 * np.sin(0))
             femm.mi_selectnode(D_a / 2 * np.cos(0), D_a / 2 * np.sin(0))
             femm.mi_setgroup(1)
@@ -745,105 +720,25 @@ class FEMM_Geometry(om.ExplicitComponent):
             ## We have to give the geometry a name before we can analyze it.
             femm.mi_saveas("coil_design_new.fem")
             
-            #try:
+            # Analyze geometry with pyfemm
             femm.mi_analyze()
-            #except:
-            #    breakpoint()
+
+            # Load and post-process results
             femm.mi_loadsolution()
             n = 0
             outputs["B_g"], outputs["B_rymax"], outputs["B_coil_max"], outputs["Sigma_normal"] = run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n)
             Load_line_slope = I_sc / float(outputs["B_coil_max"])
-            print("Computing load line with slope {}".format(Load_line_slope))
+            # print("Computing load line with slope {}".format(Load_line_slope))
             a = 5.8929
             b = -(Load_line_slope + 241.32)
             c = 1859.9
-            B_o = (-b - np.sqrt(b**2 - 4 * a * c)) / 2 / a
+            B_o = (-b - np.sqrt(b**2. - 4. * a * c)) / 2. / a
             #I_c = B_o * Load_line_slope #UNUSED
-    
-    
-            
-            
-            outputs["margin_I_c"] = float(3.5357 * outputs["B_coil_max"]**2 - 144.79 * outputs["B_coil_max"] + 1116.0)
-            outputs["Critical_current_limit"]=outputs["margin_I_c"]-I_sc
-            outputs["Coil_max_limit"]=B_o-outputs["B_coil_max"]
+
+            # Populate openmdao outputs
+            # Max current from manufacturer of superconducting coils, quadratic fit
+            outputs["margin_I_c"] = float(3.5357 * outputs["B_coil_max"]**2. - 144.79 * outputs["B_coil_max"] + 1116.0)
+            outputs["Critical_current_ratio"]=I_sc/outputs["margin_I_c"]
+            # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
+            outputs["Coil_max_ratio"]=outputs["B_coil_max"]/B_o
             outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(D_a, l_s,p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
-            
-            #print (D_a, l_s,p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
-            #print ("Outputs:",alpha_r*180/np.pi,outputs["Torque_actual"]/1e6, outputs["Sigma_shear"]/1e3, outputs["B_coil_max"],outputs["Sigma_normal"])
-            #femm.mo_close()
-            '''
-            if float(outputs["B_g"]) > 2.1:
-                print("Peak air gap flux density {} > 2.1 Tesla".format(outputs["B_g"]))
-                if I_sc >= margin_I_c:
-                    # No more ability to adjust design, send back to optimizer with violated constraints
-                    pass
-            else:
-                while float(outputs["B_g"]) <= 2.10:
-                    print(
-                        " B_o is {} Tesla; coil field is {} Tesla; Max air-gap field is {}; Iteration #{}".format(
-                            B_o, outputs["B_coil_max"], outputs["B_g"], n
-                        )
-                    )
-                    femm.opendocument("coil_design_new.fem")
-                    margin_I_c = float(3.5357 * outputs["B_coil_max"]**2 - 144.79 * outputs["B_coil_max"] + 1116.0)
-                    if I_sc >= margin_I_c:
-                        I_sc = float(margin_I_c)
-                        print("Critical current limit reached:")
-                        print("60% margin current:", margin_I_c, "Operating current:", I_sc, "B_op:", outputs["B_coil_max"])
-                        print("Increasing the turn number")
-    
-                        femm.mi_modifycircprop("A1+", 1, I_sc)
-                        femm.mi_modifycircprop("A1-", 1, -I_sc)
-                        diff = 2500 - N_sc
-                        if (diff <= 0) & (I_sc == margin_I_c):
-                            print("Max turns and critical currents reached")
-                            break
-                        elif diff > 0 and diff < 125:
-                            N_sc = N_sc + diff
-                        else:
-                            N_sc = N_sc + 125
-                        print("to turns:", N_sc)
-                        femm.mi_selectlabel(
-                            (radius_sc + h_sc * 0.5) * np.cos(alpha_r + beta_r * 0.25),
-                            (radius_sc + h_sc * 0.5) * np.sin(alpha_r + beta_r * 0.25),
-                        )
-                        femm.mi_setblockprop("NbTi", 1, 1, "A1+", 0, 10, N_sc)
-                        femm.mi_clearselected()
-                        femm.mi_selectlabel(
-                            (radius_sc + h_sc * 0.5) * np.cos(alphap_taup_angle_r + beta_r),
-                            (radius_sc + h_sc * 0.5) * np.sin(alphap_taup_angle_r + beta_r),
-                        )
-                        femm.mi_setblockprop("NbTi", 1, 1, "A1-", 0, 7, N_sc)
-                        femm.mi_clearselected()
-                        femm.mi_analyze()
-                        femm.mi_loadsolution()
-                        outputs["B_g"], outputs["B_rymax"], outputs["B_coil_max"], outputs["Sigma_normal"] = run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n)
-                        if outputs["B_coil_max"] > B_o:
-                            break
-                        else:
-                            print("B_g:", outputs["B_g"])
-                            pass
-                    else:
-                        if float(outputs["B_g"]) < B_o:
-                            I_sc = I_sc + 25
-                            print("Increasing operating current now:")
-                            femm.mi_modifycircprop("A1+", 1, I_sc)
-                            femm.mi_modifycircprop("A1-", 1, -I_sc)
-                            femm.mi_analyze()
-                            femm.mi_loadsolution()
-                            outputs["B_g"], outputs["B_rymax"], outputs["B_coil_max"], outputs["Sigma_normal"] = run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n)
-                            n = n + 1
-            '''
-    
-            
-    
-    
-            #outputs["I_sc_out"] = I_sc
-            #outputs["N_sc_out"] = N_sc
-        #    except Exception :
-        #        outputs["B_g"] =7
-        #        outputs["B_coil_max"]=12
-        #        outputs["B_rymax"]=5
-        #        outputs["Torque_actual"]=50e+06
-        #        outputs["sigma_shear"]=300000
-        #        return outputs["B_g"],outputs["B_rymax"],outputs["B_coil_max"],N_sc,I_sc,outputs["Torque_actual"],outputs["sigma_shear"]
