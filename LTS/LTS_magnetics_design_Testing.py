@@ -425,9 +425,9 @@ if __name__ == "__main__":
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
     prob.model.add_constraint("B_rymax", upper=2.1)
 
-    prob.model.add_constraint("Torque_actual", upper=23.07e6, ref=1e7)
-    prob.model.add_constraint("Critical_current_limit",lower=0.001) 
-    prob.model.add_constraint("Coil_max_limit",lower=0.001) 
+    prob.model.add_constraint("Torque_actual", lower=23.07e6, ref=1e7)
+    prob.model.add_constraint("Critical_current_ratio",upper=1.) 
+    prob.model.add_constraint("Coil_max_ratio",upper=1.) 
     prob.model.approx_totals(method="fd")
 
     prob.setup()

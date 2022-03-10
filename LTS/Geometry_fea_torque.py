@@ -202,8 +202,8 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_output("Sigma_shear", 0.0, units="Pa", desc="Shear stress")
         self.add_output("Sigma_normal", 0.0, units="Pa", desc="Normal stress")
         self.add_output("margin_I_c",0.0,units="A", desc="Critical current margin")
-        self.add_output("Critical_current_limit",0.0,units="A", desc="Critical current limit") 
-        self.add_output("Coil_max_limit",0.0, desc="Critical coil flux density limit") 
+        self.add_output("Critical_current_ratio",0.0,units="A", desc="Ratio of critical to max current") 
+        self.add_output("Coil_max_ratio",0.0, desc="Ratio of actual to critical coil flux density, usually constrained to be smaller than 1") 
         self.add_output("a_m", 0.0, units="m", desc="Coil separation distance")
         self.add_output("W_sc", 0.0, units="m", desc="SC coil width")
         self.add_output("Outer_width", 0.0, units="m", desc="Coil outer width")
@@ -731,7 +731,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             # Populate openmdao outputs
             # Max current from manufacturer of superconducting coils, quadratic fit
             outputs["margin_I_c"] = float(3.5357 * outputs["B_coil_max"]**2. - 144.79 * outputs["B_coil_max"] + 1116.0)
-            outputs["Critical_current_limit"]=outputs["margin_I_c"]-I_sc
+            outputs["Critical_current_ratio"]=I_sc/outputs["margin_I_c"]
             # B_o is the max flux density at the coil, B_coil_max is the max value from femm
-            outputs["Coil_max_limit"]=B_o-outputs["B_coil_max"]
+            outputs["Coil_max_ratio"]=B_o/outputs["B_coil_max"]
             outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(D_a, l_s,p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
