@@ -7,6 +7,7 @@ Created on Fri Dec 31 12:28:24 2021
 import femm
 import numpy as np
 import openmdao.api as om
+import os
 
 def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n):
     # After looking at the femm results, this function post-processes them, no electrical load condition
@@ -163,6 +164,7 @@ def B_r_B_t(D_a, l_s, p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1
     sigma_t = abs(1 / (4 * np.pi * 1e-7) * force) / circ
     torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s
     
+    print('Torque values in MNm:')
     print (torque[0]/1e6,torque[1]/1e6)
 
     # Air gap electro-magnetic torque for the full machine
@@ -172,8 +174,13 @@ def B_r_B_t(D_a, l_s, p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1
 
 class FEMM_Geometry(om.ExplicitComponent):
     # This openmdao component builds the geometry of one sector of the LTS generator in pyfemm and runs the analysis
+    
+    def initialize(self):
+        self.options.declare("modeling_options")
+    
     def setup(self):
-        
+        self.output_dir = self.options["modeling_options"]["output_dir"]
+
         # Discrete inputs
         self.add_discrete_input("q", 2, desc="slots_per_pole")
         self.add_discrete_input("m", 6, desc="number of phases")
@@ -732,6 +739,6 @@ class FEMM_Geometry(om.ExplicitComponent):
             # Max current from manufacturer of superconducting coils, quadratic fit
             outputs["margin_I_c"] = float(3.5357 * outputs["B_coil_max"]**2. - 144.79 * outputs["B_coil_max"] + 1116.0)
             outputs["Critical_current_ratio"]=I_sc/outputs["margin_I_c"]
-            # B_o is the max flux density at the coil, B_coil_max is the max value from femm
-            outputs["Coil_max_ratio"]=B_o/outputs["B_coil_max"]
+            # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
+            outputs["Coil_max_ratio"]=outputs["B_coil_max"]/B_o
             outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(D_a, l_s,p1,delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p)
