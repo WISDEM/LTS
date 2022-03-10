@@ -3,6 +3,12 @@ from LTS_magnetics_design_Testing import LTS_Outer_rotor_Opt
 import os
 import pandas as pd
 
+def cleanup_femm_files(clean_dir):
+    files = os.listdir(clean_dir)
+    for file in files:
+        if file.endswith(".ans") or file.endswith(".fem") or file.endswith(".csv"):
+            os.remove(os.path.join(clean_dir, file))
+
 if __name__ == "__main__":
 
     mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
@@ -11,6 +17,11 @@ if __name__ == "__main__":
 
     modeling_options = {}
     modeling_options['output_dir'] = output_dir
+
+    cleanup_flag = True
+    # Clean run directory before the run
+    if cleanup_flag:
+        cleanup_femm_files(mydir)
 
     prob = om.Problem()
     prob.model = LTS_Outer_rotor_Opt(modeling_options = modeling_options)
@@ -130,6 +141,10 @@ if __name__ == "__main__":
 
     #prob.run_model()
     prob.run_driver()
+
+    # Clean run directory after the run
+    if cleanup_flag:
+        cleanup_femm_files(mydir)
 
     prob.model.list_outputs(values = True, hierarchical=True)
 
