@@ -5,10 +5,9 @@ Electromagnetic design based on conventional magnetic circuit laws
 Structural design based on {Structural mass in direct-drive permanent magnet electrical generators by
 McDonald,A.S. et al. IET Renewable Power Generation(2008),2(1):3 http://dx.doi.org/10.1049/iet-rpg:20070071 """
 
-import pandas as pd
 import numpy as np
 import openmdao.api as om
-from Geometry_fea_torque import FEMM_Geometry
+from lts.Geometry_fea_torque import FEMM_Geometry
 
 class LTS_active(om.ExplicitComponent):
 

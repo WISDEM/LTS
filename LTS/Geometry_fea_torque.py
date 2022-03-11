@@ -7,7 +7,6 @@ Created on Fri Dec 31 12:28:24 2021
 import femm
 import numpy as np
 import openmdao.api as om
-import os
 
 def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n):
     # After looking at the femm results, this function post-processes them, no electrical load condition
