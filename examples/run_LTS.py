@@ -1,5 +1,5 @@
 import openmdao.api as om
-from LTS_magnetics_design_Testing import LTS_Outer_rotor_Opt
+from lts.LTS_magnetics_design_Testing import LTS_Outer_Rotor_Opt
 import os
 import pandas as pd
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         cleanup_femm_files(mydir)
 
     prob = om.Problem()
-    prob.model = LTS_Outer_rotor_Opt(modeling_options = modeling_options)
+    prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
     prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #'
