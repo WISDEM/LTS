@@ -174,8 +174,8 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
     sigma_t = abs(1 / (4 * np.pi * 1e-7) * force) / circ
     torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s
 
-    print("Torque values in MNm:")
-    print(torque[0] / 1e6, torque[1] / 1e6)
+    #print("Torque values in MNm:")
+    #print(torque[0] / 1e6, torque[1] / 1e6)
 
     # Air gap electro-magnetic torque for the full machine
     # Average shear stress for the full machine

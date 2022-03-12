@@ -148,7 +148,6 @@ class LTS_inactive_rotor(om.ExplicitComponent):
         outputs["R_ry"] = (r_o + r_i) * 0.5
 
         L_r = l_eff_rotor + t_rdisc
-
         D_0, Lambda_0, C_14_0, C_11_0, F_2_0, C_13_0, F_1_0, F_4_0 = shell_constant(r_i, t_rdisc, L_r, 0, v, E)
         D_L, Lambda_L, C_14_L, C_11_L, F_2_L, C_13_L, F_1_L, F_4_L = shell_constant(r_i, t_rdisc, L_r, L_r, v, E)
 
@@ -241,14 +240,13 @@ class LTS_inactive_rotor(om.ExplicitComponent):
         # )
 
         a_ii = r_o - h_total
-        r_oii = R_shaft_outer
         M_rb = (
             -wr_disc
             * a_ii ** 2
             / W_ssteel[5]
-            * (W_ssteel[6] * 0.5 / (a_ii * R_shaft_outer) * (a_ii ** 2 - r_oii ** 2) - W_ssteel[8])
+            * (W_ssteel[6] * 0.5 / (a_ii * R_shaft_outer) * (a_ii ** 2 - R_shaft_outer ** 2) - W_ssteel[8])
         )
-        Q_b = wr_disc * 0.5 / R_shaft_outer * (a_ii ** 2 - r_oii ** 2)
+        Q_b = wr_disc * 0.5 / R_shaft_outer * (a_ii ** 2 - R_shaft_outer ** 2)
 
         y_aiir = (
             M_rb * a_ii ** 2 / W_ssteel[0] * W_ssteel[1]
@@ -256,17 +254,17 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             - wr_disc * a_ii ** 4 / W_ssteel[0] * W_ssteel[7]
         )
 
-        # I = np.pi * 0.25 * (R ** 4 - (R_shaft_outer) ** 4)
-        # F_ecc           = inputs['Sigma_normal']*2*pi*inputs['K_rad']*inputs['r_g']**3
+        # I = np.pi * 0.25 * (r_i ** 4 - R_shaft_outer ** 4)
+        # F_ecc           = Sigma_normal*2*pi*K_rad*r_g**3
         # M_ar             = F_ecc*L_r*0.5
 
         outputs["y_ar"] = y_ai1r + y_ai2r + y_aiir + (r_i + h_yr + h_yr_s) * theta_sh  # +M_ar*L_r**2*0/(2*E*I)
 
         outputs["y_allowable_r"] = l_eff_rotor * y_allow_pcent / 100
         # Torsional deformation of rotor
-        J_dr = (1 / 32) * np.pi * ((r_o) ** 4 - R_shaft_outer ** 4)
+        J_dr = (1 / 32) * np.pi * (r_o ** 4 - R_shaft_outer ** 4)
 
-        J_cylr = (1 / 32) * np.pi * (r_o ** 4 - R ** 4)
+        J_cylr = (1 / 32) * np.pi * (r_o ** 4 - r_i ** 4)
 
         G = 0.5 * E / (1 + v)
 
@@ -467,7 +465,6 @@ class LTS_inactive_stator(om.ExplicitComponent):
         # I = np.pi * 0.25 * (R_s ** 4 - (R_nose_outer) ** 4)
         # F_ecc           = inputs['Sigma_normal']*2*np.pi*inputs['K_rad']*inputs['r_g']**2
         # M_as             = F_ecc*L_s*0.5
-        print(y_ai1s * 1000, 1000 * y_aiis)
         outputs["y_as"] = y_ai1s + y_ai2s + y_aiis + (R_s + h_ys * 0.5) * theta_bd  # M_as*L_s**2*0/(2*E*I)
 
         outputs["y_allowable_s"] = L_s * y_allow_pcent / 100
