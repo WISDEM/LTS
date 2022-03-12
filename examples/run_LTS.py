@@ -1,5 +1,5 @@
 import openmdao.api as om
-from lts.LTS_magnetics_design_Testing import LTS_Outer_Rotor_Opt
+from lts.lts import LTS_Outer_Rotor_Opt
 import os
 import pandas as pd
 

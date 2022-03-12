@@ -71,15 +71,15 @@ class LTS_inactive_rotor(om.ExplicitComponent):
         self.add_output("r_i", 0.0, units="m", desc="inner radius of rotor yoke")
 
         self.add_input("R_shaft_outer", 0.0, units="m", desc=" Main shaft outer radius")
-        self.add_input("R_nose_outer", 0.0, units="m", desc=" Bedplate nose outer radius")
+        # self.add_input("R_nose_outer", 0.0, units="m", desc=" Bedplate nose outer radius")
         self.add_output("W_ry", 0.0, desc=" line load of rotor yoke thickness")
-        self.add_input("Copper", 0.0, units="kg", desc=" Copper mass")
-        self.add_input("mass_SC", 0.0, units="kg", desc=" SC mass")
+        # self.add_input("Copper", 0.0, units="kg", desc=" Copper mass")
+        # self.add_input("mass_SC", 0.0, units="kg", desc=" SC mass")
         self.add_input("Tilt_angle", 0.0, units="deg", desc=" Main shaft tilt angle")
 
         # Material properties
         self.add_input("Sigma_normal", 0.0, units="Pa", desc="Normal stress ")
-        self.add_input("Sigma_shear", 0.0, units="Pa", desc="Normal stress ")
+        # self.add_input("Sigma_shear", 0.0, units="Pa", desc="Normal stress ")
 
         # Deflection
         self.add_output("u_ar", 0.0, units="m", desc="rotor radial deflection")
@@ -91,11 +91,11 @@ class LTS_inactive_rotor(om.ExplicitComponent):
 
         self.add_input("u_allow_pcent", 0.0, desc="Radial deflection as a percentage of air gap diameter")
         self.add_input("y_allow_pcent", 0.0, desc="Radial deflection as a percentage of air gap diameter")
-        self.add_input("z_allow_deg", 0.0, units="deg", desc="Allowable torsional twist")
+        # self.add_input("z_allow_deg", 0.0, units="deg", desc="Allowable torsional twist")
 
         # structural design variables
 
-        self.add_input("K_rad", desc="Aspect ratio")
+        # self.add_input("K_rad", desc="Aspect ratio")
 
         # Material properties
 
@@ -110,100 +110,81 @@ class LTS_inactive_rotor(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
+        # Unpack inputs
+        y_sh = inputs["y_sh"]
+        theta_sh = inputs["theta_sh"]
+        D_a = inputs["D_a"]
+        h_s = inputs["h_s"]
+        delta_em = inputs["delta_em"]
+        h_yr = inputs["h_yr"]
+        h_yr_s = inputs["h_yr_s"]
+        l_eff_rotor = inputs["l_eff_rotor"]
+        t_rdisc = inputs["t_rdisc"]
+        E = inputs["E"]
+        v = inputs["v"]
+        g = inputs["g"]
+        rho_steel = inputs["rho_steel"]
+        rho_Fe = inputs["rho_Fe"]
+        T_e = inputs["T_e"]
+        R_shaft_outer = inputs["R_shaft_outer"]
+        # R_nose_outer = inputs["R_nose_outer"]
+        # Copper = inputs["Copper"]
+        # mass_SC = inputs["mass_SC"]
+        Tilt_angle = inputs["Tilt_angle"]
+        Sigma_normal = inputs["Sigma_normal"]
+        # Sigma_shear = inputs["Sigma_shear"]
+        u_allow_pcent = inputs["u_allow_pcent"]
+        y_allow_pcent = inputs["y_allow_pcent"]
+        # z_allow_deg = inputs["z_allow_deg"]
+        # K_rad = inputs["K_rad"]
+
         # Radial deformation of rotor
 
         ###################################################### Rotor disc radial deflection#############################################
-        outputs["r_o"] = inputs["D_a"] * 0.5 - inputs["h_s"]
+        outputs["r_o"] = r_o = D_a * 0.5 - h_s
 
-        h_total = inputs["h_yr"] + inputs["h_yr_s"]
-        outputs["r_i"] = outputs["r_o"] - h_total
-        outputs["R_ry"] = (outputs["r_o"] + outputs["r_i"]) * 0.5
-        R = outputs["r_i"]
+        h_total = h_yr + h_yr_s
+        outputs["r_i"] = r_i = r_o - h_total
+        outputs["R_ry"] = (r_o + r_i) * 0.5
 
-        # print (outputs["r_i"],outputs["r_i"]+inputs["h_yr_s"],outputs["r_i"]+inputs["h_yr"]+inputs["h_yr_s"])
+        L_r = l_eff_rotor + t_rdisc
 
-        L_r = inputs["l_eff_rotor"] + inputs["t_rdisc"]
-        constants_x_0 = shell_constant(R, inputs["t_rdisc"], L_r, 0, inputs["v"], inputs["E"])
-        constants_x_L = shell_constant(R, inputs["t_rdisc"], L_r, L_r, inputs["v"], inputs["E"])
+        D_0, Lambda_0, C_14_0, C_11_0, F_2_0, C_13_0, F_1_0, F_4_0 = shell_constant(r_i, t_rdisc, L_r, 0, v, E)
+        D_L, Lambda_L, C_14_L, C_11_L, F_2_L, C_13_L, F_1_L, F_4_L = shell_constant(r_i, t_rdisc, L_r, L_r, v, E)
 
         f_d_denom1 = (
-            R
-            / (inputs["E"] * ((R) ** 2 - (inputs["R_shaft_outer"]) ** 2))
-            * ((1 - inputs["v"]) * R ** 2 + (1 + inputs["v"]) * (inputs["R_shaft_outer"]) ** 2)
+            r_i / (E * (r_i ** 2 - (R_shaft_outer) ** 2)) * ((1 - v) * r_i ** 2 + (1 + v) * (R_shaft_outer) ** 2)
         )
 
         f_d_denom2 = (
-            inputs["t_rdisc"]
-            / (2 * constants_x_0[0] * (constants_x_0[1]) ** 3)
-            * (
-                constants_x_0[2] / (2 * constants_x_0[3]) * constants_x_0[4]
-                - constants_x_0[5] / constants_x_0[3] * constants_x_0[6]
-                - 0.5 * constants_x_0[7]
-            )
+            t_rdisc
+            / (2 * D_0 * (Lambda_0) ** 3)
+            * (C_14_0 / (2 * C_11_0) * F_2_0 - C_13_0 / C_11_0 * F_1_0 - 0.5 * F_4_0)
         )
 
-        f = (
-            inputs["Sigma_normal"]
-            * (R) ** 2
-            * inputs["t_rdisc"]
-            / (inputs["E"] * (h_total) * (f_d_denom1 + f_d_denom2))
-        )
-
-        # print (f)
+        f = Sigma_normal * r_i ** 2 * t_rdisc / (E * (h_total) * (f_d_denom1 + f_d_denom2))
 
         u_d = (
-            f
-            / (constants_x_L[0] * (constants_x_L[1]) ** 3)
-            * (
-                (
-                    constants_x_L[2] / (2 * constants_x_L[3]) * constants_x_L[4]
-                    - constants_x_L[5] / constants_x_L[3] * constants_x_L[6]
-                    - 0.5 * constants_x_L[7]
-                )
-            )
-            + inputs["y_sh"]
+            f / (D_L * (Lambda_L) ** 3) * ((C_14_L / (2 * C_11_L) * F_2_L - C_13_L / C_11_L * F_1_L - 0.5 * F_4_L))
+            + y_sh
         )
 
-        outputs["u_ar"] = (inputs["Sigma_normal"] * (R) ** 2) / (inputs["E"] * (h_total)) - u_d
+        outputs["u_ar"] = (Sigma_normal * r_i ** 2) / (E * (h_total)) - u_d
 
         outputs["Structural_mass_rotor"] = (
-            inputs["rho_steel"]
+            rho_steel
             * np.pi
-            * (
-                ((outputs["r_i"]) ** 2 - (inputs["R_shaft_outer"]) ** 2) * inputs["t_rdisc"]
-                + ((outputs["r_i"] + inputs["h_yr_s"]) ** 2 - (outputs["r_i"] ** 2)) * inputs["l_eff_rotor"]
-            )
+            * (((r_i) ** 2 - (R_shaft_outer) ** 2) * t_rdisc + ((r_i + h_yr_s) ** 2 - (r_i ** 2)) * l_eff_rotor)
         )
 
-        active_mass = (
-            inputs["rho_Fe"] * np.pi * ((outputs["r_o"]) ** 2 - (outputs["r_i"] + inputs["h_yr_s"]) ** 2) * L_r
-        )
+        # active_mass = rho_Fe * np.pi * ((r_o) ** 2 - (r_i + h_yr_s) ** 2) * L_r
+        # Total_mass_rotor = active_mass + outputs["Structural_mass_rotor"]
+        # M_r = Total_mass_rotor * g * l_eff_rotor / 2
+        # delta_u = 6 * M_r * (1 - v ** 2) * (r_o) / (E * (1 + v) * t_rdisc ** 3)
 
-        Total_mass_rotor = active_mass + outputs["Structural_mass_rotor"]
+        outputs["u_ar"] = abs(outputs["u_ar"] + y_sh)
 
-        M_r = Total_mass_rotor * inputs["g"] * inputs["l_eff_rotor"] / 2
-        print(M_r)
-
-        delta_u = (
-            6
-            * M_r
-            * (1 - inputs["v"] ** 2)
-            * (outputs["r_o"])
-            / (inputs["E"] * (1 + inputs["v"]) * inputs["t_rdisc"] ** 3)
-        )
-
-        print(
-            6 * M_r,
-            (1 - inputs["v"] ** 2)
-            * (outputs["r_o"])
-            / (inputs["E"] * (1 + inputs["v"]) * inputs["t_rdisc"] ** 3),
-        )
-
-        # print (outputs['u_ar'], inputs["h_yr_s"],inputs['t_rdisc'])
-
-        outputs["u_ar"] = abs(outputs["u_ar"] + inputs["y_sh"])
-
-        outputs["u_allowable_r"] = inputs["delta_em"] * inputs["u_allow_pcent"] / 100
+        outputs["u_allowable_r"] = delta_em * u_allow_pcent / 100
 
         outputs["U_rotor_radial_constraint"] = outputs["u_allowable_r"] - outputs["u_ar"]
 
@@ -211,84 +192,63 @@ class LTS_inactive_rotor(om.ExplicitComponent):
         # return D,C_2,C_3,C_5,C_6,C_8,C_9,L_11,L_17
         # axial deformation of rotor
         W_back_iron = plate_constant(
-            outputs["r_i"] + inputs["h_yr_s"] + inputs["h_yr"] * 0.5,
-            inputs["R_shaft_outer"],
-            inputs["v"],
-            +inputs["h_yr_s"] + inputs["h_yr"] * 0.5,
-            inputs["t_rdisc"],
-            inputs["E"],
+            r_i + h_yr_s + h_yr * 0.5,
+            R_shaft_outer,
+            v,
+            +h_yr_s + h_yr * 0.5,
+            t_rdisc,
+            E,
         )
         W_ssteel = plate_constant(
-            outputs["r_i"] + inputs["h_yr_s"] * 0.5,
-            inputs["R_shaft_outer"],
-            inputs["v"],
-            inputs["h_yr"] + outputs["r_i"] + inputs["h_yr_s"] * 0.5,
-            inputs["t_rdisc"],
-            inputs["E"],
+            r_i + h_yr_s * 0.5,
+            R_shaft_outer,
+            v,
+            h_yr + r_i + h_yr_s * 0.5,
+            t_rdisc,
+            E,
         )
-        W_cu = plate_constant(
-            inputs["D_a"] * 0.5 - inputs["h_s"] * 0.5,
-            inputs["R_shaft_outer"],
-            inputs["v"],
-            inputs["D_a"] * 0.5 - inputs["h_s"] * 0.5,
-            inputs["t_rdisc"],
-            inputs["E"],
-        )
+        # W_cu = plate_constant(
+        #    D_a * 0.5 - h_s * 0.5,
+        #    R_shaft_outer,
+        #    v,
+        #    D_a * 0.5 - h_s * 0.5,
+        #    t_rdisc,
+        #    E,
+        # )
 
-        outputs["W_ry"] = (
-            inputs["rho_Fe"]
-            * inputs["g"]
-            * np.sin(np.deg2rad(inputs["Tilt_angle"]))
-            * (L_r - inputs["t_rdisc"])
-            * h_total
-        )
+        outputs["W_ry"] = rho_Fe * g * np.sin(np.deg2rad(Tilt_angle)) * (L_r - t_rdisc) * h_total
 
-        wr_disc = (
-            inputs["rho_steel"] * inputs["g"] * np.sin(np.deg2rad(inputs["Tilt_angle"])) * inputs["t_rdisc"]
-        )
+        wr_disc = rho_steel * g * np.sin(np.deg2rad(Tilt_angle)) * t_rdisc
 
         y_ai1r = (
             -0.5
             * outputs["W_ry"]
-            * (outputs["r_i"] + inputs["h_yr_s"] + inputs["h_yr"] * 0.5) ** 4
-            / (inputs["R_shaft_outer"] * W_back_iron[0])
+            * (r_i + h_yr_s + h_yr * 0.5) ** 4
+            / (R_shaft_outer * W_back_iron[0])
             * (W_back_iron[1] * W_back_iron[4] / W_back_iron[3] - W_back_iron[2])
         )
-        W_sr = (
-            inputs["rho_steel"]
-            * inputs["g"]
-            * np.sin(np.deg2rad(inputs["Tilt_angle"]))
-            * (L_r - inputs["t_rdisc"])
-            * inputs["h_yr_s"]
-        )
+        W_sr = rho_steel * g * np.sin(np.deg2rad(Tilt_angle)) * (L_r - t_rdisc) * h_yr_s
         y_ai2r = (
             -0.5
             * W_sr
-            * (outputs["r_i"] + inputs["h_yr_s"] * 0.5) ** 4
-            / (inputs["R_shaft_outer"] * W_ssteel[0])
+            * (r_i + h_yr_s * 0.5) ** 4
+            / (R_shaft_outer * W_ssteel[0])
             * (W_ssteel[1] * W_ssteel[4] / W_ssteel[3] - W_ssteel[2])
         )
-        W_Cu = (
-            np.sin(np.deg2rad(inputs["Tilt_angle"]))
-            * inputs["Copper"]
-            / (2 * np.pi * (inputs["D_a"] * 0.5 - inputs["h_s"] * 0.5))
-        )
-        y_ai3r = (
-            -W_Cu
-            * (inputs["D_a"] * 0.5 - inputs["h_s"] * 0.5) ** 4
-            / (inputs["R_shaft_outer"] * W_cu[0])
-            * (W_cu[1] * W_cu[4] / W_cu[3] - W_cu[2])
-        )
+        # W_Cu = np.sin(np.deg2rad(Tilt_angle)) * Copper / (2 * np.pi * (D_a * 0.5 - h_s * 0.5))
+        # y_ai3r = (
+        #    -W_Cu * (D_a * 0.5 - h_s * 0.5) ** 4 / (R_shaft_outer * W_cu[0]) * (W_cu[1] * W_cu[4] / W_cu[3] - W_cu[2])
+        # )
 
-        a_ii = outputs["r_o"] - h_total
-        r_oii = inputs["R_shaft_outer"]
+        a_ii = r_o - h_total
+        r_oii = R_shaft_outer
         M_rb = (
             -wr_disc
             * a_ii ** 2
             / W_ssteel[5]
-            * (W_ssteel[6] * 0.5 / (a_ii * inputs["R_shaft_outer"]) * (a_ii ** 2 - r_oii ** 2) - W_ssteel[8])
+            * (W_ssteel[6] * 0.5 / (a_ii * R_shaft_outer) * (a_ii ** 2 - r_oii ** 2) - W_ssteel[8])
         )
-        Q_b = wr_disc * 0.5 / inputs["R_shaft_outer"] * (a_ii ** 2 - r_oii ** 2)
+        Q_b = wr_disc * 0.5 / R_shaft_outer * (a_ii ** 2 - r_oii ** 2)
 
         y_aiir = (
             M_rb * a_ii ** 2 / W_ssteel[0] * W_ssteel[1]
@@ -296,39 +256,26 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             - wr_disc * a_ii ** 4 / W_ssteel[0] * W_ssteel[7]
         )
 
-        I = np.pi * 0.25 * (R ** 4 - (inputs["R_shaft_outer"]) ** 4)
+        # I = np.pi * 0.25 * (R ** 4 - (R_shaft_outer) ** 4)
         # F_ecc           = inputs['Sigma_normal']*2*pi*inputs['K_rad']*inputs['r_g']**3
         # M_ar             = F_ecc*L_r*0.5
 
-        outputs["y_ar"] = (
-            y_ai1r + y_ai2r + y_aiir + (outputs["r_i"] + inputs["h_yr"] + inputs["h_yr_s"]) * inputs["theta_sh"]
-        )  # +M_ar*L_r**2*0/(2*inputs["E"]*I)
+        outputs["y_ar"] = y_ai1r + y_ai2r + y_aiir + (r_i + h_yr + h_yr_s) * theta_sh  # +M_ar*L_r**2*0/(2*E*I)
 
-        print(y_ai1r * 1000, y_ai2r * 1000, y_aiir * 1000)
-
-        outputs["y_allowable_r"] = inputs["l_eff_rotor"] * inputs["y_allow_pcent"] / 100
+        outputs["y_allowable_r"] = l_eff_rotor * y_allow_pcent / 100
         # Torsional deformation of rotor
-        J_dr = (1 / 32) * np.pi * ((outputs["r_o"]) ** 4 - inputs["R_shaft_outer"] ** 4)
+        J_dr = (1 / 32) * np.pi * ((r_o) ** 4 - R_shaft_outer ** 4)
 
-        J_cylr = (1 / 32) * np.pi * (outputs["r_o"] ** 4 - R ** 4)
+        J_cylr = (1 / 32) * np.pi * (r_o ** 4 - R ** 4)
 
-        G = 0.5 * inputs["E"] / (1 + inputs["v"])
+        G = 0.5 * E / (1 + v)
 
-        outputs["twist_r"] = (
-            180
-            / np.pi
-            * inputs["T_e"]
-            / G
-            * (inputs["t_rdisc"] / J_dr + (inputs["l_eff_rotor"] - inputs["t_rdisc"]) / J_cylr)
-        )
+        outputs["twist_r"] = 180 / np.pi * T_e / G * (t_rdisc / J_dr + (l_eff_rotor - t_rdisc) / J_cylr)
 
         outputs["Structural_mass_rotor"] = (
-            inputs["rho_steel"]
+            rho_steel
             * np.pi
-            * (
-                ((outputs["r_i"]) ** 2 - (inputs["R_shaft_outer"]) ** 2) * inputs["t_rdisc"]
-                + ((outputs["r_i"] + inputs["h_yr_s"]) ** 2 - (outputs["r_i"] ** 2)) * inputs["l_eff_rotor"]
-            )
+            * (((r_i) ** 2 - (R_shaft_outer) ** 2) * t_rdisc + ((r_i + h_yr_s) ** 2 - (r_i ** 2)) * l_eff_rotor)
         )
 
         outputs["U_rotor_axial_constraint"] = outputs["y_allowable_r"] - outputs["y_ar"]
@@ -372,20 +319,20 @@ class LTS_inactive_stator(om.ExplicitComponent):
 
         # Material properties
         self.add_input("Sigma_normal", 0.0, units="Pa", desc="Normal stress ")
-        self.add_input("Sigma_shear", 0.0, units="Pa", desc="Normal stress ")
+        # self.add_input("Sigma_shear", 0.0, units="Pa", desc="Normal stress ")
 
         self.add_output("U_radial_stator", 0.0, units="m", desc="stator radial deflection")
         self.add_output("U_axial_stator", 0.0, units="m", desc="stator axial deflection")
         self.add_output("U_stator_radial_constraint", 0.0, units="m", desc="Stator radial deflection contraint")
         self.add_output("U_stator_axial_constraint", 0.0, units="m", desc="Stator axial deflection contraint")
-        self.add_input("perc_allowable_radial", 0.0, desc=" Allowable radial % deflection ")
-        self.add_input("perc_allowable_axial", 0.0, desc=" Allowable axial % deflection ")
+        # self.add_input("perc_allowable_radial", 0.0, desc=" Allowable radial % deflection ")
+        # self.add_input("perc_allowable_axial", 0.0, desc=" Allowable axial % deflection ")
 
         self.add_input("Structural_mass_rotor", 0.0, units="kg", desc="rotor disc mass")
         self.add_output("Structural_mass_stator", 0.0, units="kg", desc="Stator mass (kg)")
         self.add_output("mass_total", 0.0, units="kg", desc="stator disc mass")
 
-        self.add_input("K_rad", desc="Aspect ratio")
+        # self.add_input("K_rad", desc="Aspect ratio")
 
         self.add_output("u_as", 0.0, units="m", desc="Radial deformation")
         self.add_output("y_as", 0.0, units="m", desc="Axial deformation")
@@ -393,7 +340,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
 
         self.add_input("u_allow_pcent", 0.0, desc="Radial deflection as a percentage of air gap diameter")
         self.add_input("y_allow_pcent", 0.0, desc="Radial deflection as a percentage of air gap diameter")
-        self.add_input("z_allow_deg", 0.0, units="deg", desc="Allowable torsional twist")
+        # self.add_input("z_allow_deg", 0.0, units="deg", desc="Allowable torsional twist")
 
         self.add_output(
             "u_allowable_s", 0.0, units="m", desc="Allowable Radial deflection as a percentage of air gap diameter"
@@ -403,54 +350,62 @@ class LTS_inactive_stator(om.ExplicitComponent):
         )
 
     def compute(self, inputs, outputs):
+        # Unpack inputs
+        R_nose_outer = inputs["R_nose_outer"]
+        y_bd = inputs["y_bd"]
+        theta_bd = inputs["theta_bd"]
+        T_e = inputs["T_e"]
+        D_sc = inputs["D_sc"]
+        delta_em = inputs["delta_em"]
+        h_ys = inputs["h_ys"]
+        h_sc = inputs["h_sc"]
+        l_eff_stator = inputs["l_eff_stator"]
+        t_sdisc = inputs["t_sdisc"]
+        E = inputs["E"]
+        v = inputs["v"]
+        g = inputs["g"]
+        rho_steel = inputs["rho_steel"]
+        mass_SC = inputs["mass_SC"]
+        Tilt_angle = inputs["Tilt_angle"]
+        Sigma_normal = inputs["Sigma_normal"]
+        # Sigma_shear = inputs["Sigma_shear"]
+        # perc_allowable_radial = inputs["perc_allowable_radial"]
+        # perc_allowable_axial = inputs["perc_allowable_axial"]
+        Structural_mass_rotor = inputs["Structural_mass_rotor"]
+        # K_rad = inputs["K_rad"]
+        u_allow_pcent = inputs["u_allow_pcent"]
+        y_allow_pcent = inputs["y_allow_pcent"]
+        # z_allow_deg = inputs["z_allow_deg"]
 
         # Assign values to universal constants
 
         # Radial deformation of Stator
-        L_s = inputs["l_eff_stator"] + inputs["t_sdisc"]
-        outputs["r_os"] = inputs["D_sc"] * 0.5 + inputs["h_sc"] + 0.25 + inputs["h_ys"]
-        outputs["r_is"] = outputs["r_os"] - inputs["h_ys"]
-        outputs["R_sy"] = (outputs["r_os"] + outputs["r_is"]) * 0.5
-        R_s = outputs["r_is"]
-        constants_x_0 = shell_constant(R_s, inputs["t_sdisc"], L_s, 0, inputs["v"], inputs["E"])
-        constants_x_L = shell_constant(R_s, inputs["t_sdisc"], L_s, L_s, inputs["v"], inputs["E"])
+        L_s = l_eff_stator + t_sdisc
+        outputs["r_os"] = r_os = D_sc * 0.5 + h_sc + 0.25 + h_ys
+        outputs["r_is"] = r_is = r_os - h_ys
+        outputs["R_sy"] = (r_os + r_is) * 0.5
+        R_s = r_is
+
+        D_0, Lambda_0, C_14_0, C_11_0, F_2_0, C_13_0, F_1_0, F_4_0 = shell_constant(R_s, t_sdisc, L_s, 0, v, E)
+        D_L, Lambda_L, C_14_L, C_11_L, F_2_L, C_13_L, F_1_L, F_4_L = shell_constant(R_s, t_sdisc, L_s, L_s, v, E)
         f_d_denom1 = (
-            R_s
-            / (inputs["E"] * ((R_s) ** 2 - (inputs["R_nose_outer"]) ** 2))
-            * ((1 - inputs["v"]) * R_s ** 2 + (1 + inputs["v"]) * (inputs["R_nose_outer"]) ** 2)
+            R_s / (E * ((R_s) ** 2 - (R_nose_outer) ** 2)) * ((1 - v) * R_s ** 2 + (1 + v) * (R_nose_outer) ** 2)
         )
         f_d_denom2 = (
-            inputs["t_sdisc"]
-            / (2 * constants_x_0[0] * (constants_x_0[1]) ** 3)
-            * (
-                constants_x_0[2] / (2 * constants_x_0[3]) * constants_x_0[4]
-                - constants_x_0[5] / constants_x_0[3] * constants_x_0[6]
-                - 0.5 * constants_x_0[7]
-            )
+            t_sdisc
+            / (2 * D_0 * (Lambda_0) ** 3)
+            * (C_14_0 / (2 * C_11_0) * F_2_0 - C_13_0 / C_11_0 * F_1_0 - 0.5 * F_4_0)
         )
-        f = (
-            inputs["Sigma_normal"]
-            * (R_s) ** 2
-            * inputs["t_sdisc"]
-            / (inputs["E"] * (inputs["h_ys"]) * (f_d_denom1 + f_d_denom2))
-        )
+        f = Sigma_normal * (R_s) ** 2 * t_sdisc / (E * (h_ys) * (f_d_denom1 + f_d_denom2))
         outputs["u_as"] = (
-            (inputs["Sigma_normal"] * (R_s) ** 2) / (inputs["E"] * (inputs["h_ys"]))
-            - f
-            / (constants_x_L[0] * (constants_x_L[1]) ** 3)
-            * (
-                (
-                    constants_x_L[2] / (2 * constants_x_L[3]) * constants_x_L[4]
-                    - constants_x_L[5] / constants_x_L[3] * constants_x_L[6]
-                    - 1 / 2 * constants_x_L[7]
-                )
-            )
-            + inputs["y_bd"]
+            (Sigma_normal * (R_s) ** 2) / (E * (h_ys))
+            - f / (D_L * (Lambda_L) ** 3) * ((C_14_L / (2 * C_11_L) * F_2_L - C_13_L / C_11_L * F_1_L - 0.5 * F_4_L))
+            + y_bd
         )
 
-        outputs["u_as"] = outputs["u_as"] + inputs["y_bd"]
+        outputs["u_as"] += y_bd
 
-        outputs["u_allowable_s"] = inputs["delta_em"] * inputs["u_allow_pcent"] / 100
+        outputs["u_allowable_s"] = delta_em * u_allow_pcent / 100
 
         outputs["U_stator_radial_constraint"] = outputs["u_allowable_s"] - outputs["u_as"]
 
@@ -459,61 +414,49 @@ class LTS_inactive_stator(om.ExplicitComponent):
         # axial deformation of stator
 
         W_ssteel = plate_constant(
-            R_s + inputs["h_ys"] * 0.5,
-            inputs["R_nose_outer"],
-            inputs["v"],
-            R_s + inputs["h_ys"] * 0.5,
-            inputs["t_sdisc"],
-            inputs["E"],
+            R_s + h_ys * 0.5,
+            R_nose_outer,
+            v,
+            R_s + h_ys * 0.5,
+            t_sdisc,
+            E,
         )
         W_sc = plate_constant(
-            inputs["D_sc"] * 0.5 + inputs["h_sc"] * 0.5,
-            inputs["R_nose_outer"],
-            inputs["v"],
-            inputs["D_sc"] * 0.5 + inputs["h_sc"] * 0.5,
-            inputs["t_sdisc"],
-            inputs["E"],
+            D_sc * 0.5 + h_sc * 0.5,
+            R_nose_outer,
+            v,
+            D_sc * 0.5 + h_sc * 0.5,
+            t_sdisc,
+            E,
         )
 
-        W_is = (
-            inputs["rho_steel"]
-            * inputs["g"]
-            * np.sin(np.deg2rad(inputs["Tilt_angle"]))
-            * (L_s - inputs["t_sdisc"])
-            * inputs["h_ys"]
-        )
+        W_is = rho_steel * g * np.sin(np.deg2rad(Tilt_angle)) * (L_s - t_sdisc) * h_ys
         y_ai1s = (
             -W_is
-            * (0.5 * inputs["h_ys"] + R_s) ** 4
-            / (inputs["R_nose_outer"] * W_ssteel[0])
+            * (0.5 * h_ys + R_s) ** 4
+            / (R_nose_outer * W_ssteel[0])
             * (W_ssteel[1] * W_ssteel[4] / W_ssteel[3] - W_ssteel[2])
         )
 
-        W_field = (
-            np.sin(np.deg2rad(inputs["Tilt_angle"]))
-            * inputs["mass_SC"]
-            / (2 * np.pi * (inputs["D_sc"] * 0.5 + inputs["h_sc"] * 0.5))
-        )
+        W_field = np.sin(np.deg2rad(Tilt_angle)) * mass_SC / (2 * np.pi * (D_sc * 0.5 + h_sc * 0.5))
         y_ai2s = (
             -W_field
-            * (inputs["D_sc"] * 0.5 + inputs["h_sc"] * 0.5) ** 4
-            / (inputs["R_nose_outer"] * W_sc[0])
+            * (D_sc * 0.5 + h_sc * 0.5) ** 4
+            / (R_nose_outer * W_sc[0])
             * (W_sc[1] * W_sc[4] / W_sc[3] - W_sc[2])
         )
 
-        w_disc_s = (
-            inputs["rho_steel"] * inputs["g"] * np.sin(np.deg2rad(inputs["Tilt_angle"])) * inputs["t_sdisc"]
-        )
+        w_disc_s = rho_steel * g * np.sin(np.deg2rad(Tilt_angle)) * t_sdisc
 
         a_ii = R_s
-        r_oii = inputs["R_nose_outer"]
+        r_oii = R_nose_outer
         M_sb = (
             -w_disc_s
             * a_ii ** 2
             / W_ssteel[5]
-            * (W_ssteel[6] * 0.5 / (a_ii * inputs["R_nose_outer"]) * (a_ii ** 2 - r_oii ** 2) - W_ssteel[8])
+            * (W_ssteel[6] * 0.5 / (a_ii * R_nose_outer) * (a_ii ** 2 - r_oii ** 2) - W_ssteel[8])
         )
-        Q_sb = w_disc_s * 0.5 / inputs["R_nose_outer"] * (a_ii ** 2 - r_oii ** 2)
+        Q_sb = w_disc_s * 0.5 / R_nose_outer * (a_ii ** 2 - r_oii ** 2)
 
         y_aiis = (
             M_sb * a_ii ** 2 / W_ssteel[0] * W_ssteel[1]
@@ -521,35 +464,31 @@ class LTS_inactive_stator(om.ExplicitComponent):
             - w_disc_s * a_ii ** 4 / W_ssteel[0] * W_ssteel[7]
         )
 
-        I = np.pi * 0.25 * (R_s ** 4 - (inputs["R_nose_outer"]) ** 4)
+        # I = np.pi * 0.25 * (R_s ** 4 - (R_nose_outer) ** 4)
         # F_ecc           = inputs['Sigma_normal']*2*np.pi*inputs['K_rad']*inputs['r_g']**2
         # M_as             = F_ecc*L_s*0.5
         print(y_ai1s * 1000, 1000 * y_aiis)
-        outputs["y_as"] = (
-            y_ai1s + y_ai2s + y_aiis + (R_s + inputs["h_ys"] * 0.5) * inputs["theta_bd"]
-        )  # M_as*L_s**2*0/(2*inputs["E"]*I)
+        outputs["y_as"] = y_ai1s + y_ai2s + y_aiis + (R_s + h_ys * 0.5) * theta_bd  # M_as*L_s**2*0/(2*E*I)
 
-        outputs["y_allowable_s"] = L_s * inputs["y_allow_pcent"] / 100
+        outputs["y_allowable_s"] = L_s * y_allow_pcent / 100
 
         # Torsional deformation of stator
-        J_ds = (1 / 32) * np.pi * ((outputs["r_os"]) ** 4 - inputs["R_nose_outer"] ** 4)
+        J_ds = (1 / 32) * np.pi * ((r_os) ** 4 - R_nose_outer ** 4)
 
-        J_cyls = (1 / 32) * np.pi * ((outputs["r_os"]) ** 4 - outputs["r_is"] ** 4)
+        J_cyls = (1 / 32) * np.pi * ((r_os) ** 4 - r_is ** 4)
 
-        G = 0.5 * inputs["E"] / (1 + inputs["v"])
+        G = 0.5 * E / (1 + v)
 
-        outputs["twist_s"] = (
-            180.0 / np.pi * inputs["T_e"] * L_s / G * (inputs["t_sdisc"] / J_ds + (L_s - inputs["t_sdisc"]) / J_cyls)
-        )
+        outputs["twist_s"] = 180.0 / np.pi * T_e * L_s / G * (t_sdisc / J_ds + (L_s - t_sdisc) / J_cyls)
 
-        outputs["Structural_mass_stator"] = inputs["rho_steel"] * (
-            np.pi * ((R_s + inputs["h_ys"] * 0.5) ** 2 - (inputs["R_nose_outer"]) ** 2) * inputs["t_sdisc"]
-            + np.pi * ((outputs["r_os"]) ** 2 - outputs["r_is"] ** 2) * inputs["l_eff_stator"]
+        outputs["Structural_mass_stator"] = rho_steel * (
+            np.pi * ((R_s + h_ys * 0.5) ** 2 - (R_nose_outer) ** 2) * t_sdisc
+            + np.pi * (r_os ** 2 - r_is ** 2) * l_eff_stator
         )
 
         outputs["U_stator_axial_constraint"] = outputs["y_allowable_s"] - outputs["y_as"]
 
-        outputs["mass_total"] = outputs["Structural_mass_stator"] + inputs["Structural_mass_rotor"]
+        outputs["mass_total"] = outputs["Structural_mass_stator"] + Structural_mass_rotor
 
 
 class LTS_Outer_Rotor_Structural(om.Group):

@@ -1,12 +1,15 @@
-import numpy as np
 import openmdao.api as om
+import lts.magnetics_design as md
+from lts.femm_fea import FEMM_Geometry
+from lts.structural import LTS_Outer_Rotor_Structural
+
 
 class LTS_Outer_Rotor_Opt(om.Group):
     def initialize(self):
         self.options.declare("modeling_options")
 
     def setup(self):
-        self.linear_solver = lbgs = om.LinearBlockJac() #om.LinearBlockGS()
+        self.linear_solver = lbgs = om.LinearBlockJac()  # om.LinearBlockGS()
         self.nonlinear_solver = nlbgs = om.NonlinearBlockGS()
         nlbgs.options["maxiter"] = 3
         nlbgs.options["atol"] = 1e-2
@@ -53,10 +56,9 @@ class LTS_Outer_Rotor_Opt(om.Group):
         # ivcs.add_output("J_c", 0.0, units="A/(mm*mm)", desc="SC critical current density")
 
         self.add_subsystem("ivcs", ivcs, promotes=["*"])
-        self.add_subsystem("sys", LTS_active(), promotes=["*"])
+        self.add_subsystem("sys", md.LTS_active(), promotes=["*"])
         self.add_subsystem("geom", FEMM_Geometry(modeling_options=modeling_options), promotes=["*"])
-        self.add_subsystem("results", Results(), promotes=["*"])
+        self.add_subsystem("results", md.Results(), promotes=["*"])
         self.add_subsystem("struct", LTS_Outer_Rotor_Structural(), promotes=["*"])
 
         self.connect("Torque_actual", "T_e")
-        

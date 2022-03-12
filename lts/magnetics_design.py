@@ -325,4 +325,3 @@ class Results(om.ExplicitComponent):
         )
         outputs["P_Losses"] = inputs["Cu_losses"] + outputs["P_Fe"] + inputs["P_add"] + inputs["P_brushes"]
         outputs["gen_eff"] = 1 - outputs["P_Losses"] / inputs["P_rated"]
-
