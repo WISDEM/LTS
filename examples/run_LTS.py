@@ -1,5 +1,5 @@
 import openmdao.api as om
-from LTS_magnetics_design_Testing import LTS_Outer_rotor_Opt
+from lts.lts import LTS_Outer_Rotor_Opt
 import os
 import pandas as pd
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         cleanup_femm_files(mydir)
 
     prob = om.Problem()
-    prob.model = LTS_Outer_rotor_Opt(modeling_options = modeling_options)
+    prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
     prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #'
@@ -60,7 +60,12 @@ if __name__ == "__main__":
     prob.model.add_design_var("N_c", lower=2, upper=30, ref=16)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
     #prob.model.add_design_var("J_s", lower=1.5, upper=6, ref=3.75)
-    prob.model.add_objective("l_sc", ref=1e3)
+    prob.model.add_design_var("h_yr_s", lower=0.0250, upper=0.5, ref=0.3)
+    prob.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
+    prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
+    prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
+    prob.model.add_objective("mass_total", ref=1e6)
+    #prob.model.add_objective("l_sc", ref=1e3)
 
     # prob.model.add_constraint('K_rad',    lower=0.15,upper=0.3)						#10
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
@@ -71,8 +76,14 @@ if __name__ == "__main__":
     prob.model.add_constraint("B_rymax", upper=2.1)
 
     prob.model.add_constraint("Torque_actual", lower=23.07e6, ref=1e7)
-    prob.model.add_constraint("Critical_current_ratio",upper=1.) 
-    prob.model.add_constraint("Coil_max_ratio",upper=1.) 
+    prob.model.add_constraint("Critical_current_ratio",upper=1.)
+    prob.model.add_constraint("Coil_max_ratio",upper=1.)
+
+    prob.model.add_constraint("U_rotor_radial_constraint", lower=0.01)
+    prob.model.add_constraint("U_rotor_axial_constraint", lower=0.01)
+    prob.model.add_constraint("U_stator_radial_constraint", lower=0.01)
+    prob.model.add_constraint("U_stator_axial_constraint", lower=0.01)
+
     prob.model.approx_totals(method="fd")
 
     prob.setup()
@@ -130,12 +141,28 @@ if __name__ == "__main__":
     prob["J_s"] = 3.0
 
     # Material properties
+    prob["rho_steel"] = 7850
     prob["rho_Fe"] = 7700.0  # Steel density
     prob["rho_Copper"] = 8900.0  # Kg/m3 copper density
     prob["rho_NbTi"] = 8442.37093661195  # magnet density
     prob["rho_Cu"] = 1.8e-8 * 1.4  # Copper resisitivty
     prob["U_b"] = 2     # brush contact voltage
     prob["Y"] = 10                 #Short pitch
+
+    prob["Tilt_angle"] = 6.0
+    prob["R_shaft_outer"] = 1.25
+    prob["R_nose_outer"] = 0.95
+    prob["u_allow_pcent"] = 50
+    prob["y_allow_pcent"] = 20
+    #prob["h_yr"] = 0.1254730934
+    prob["h_yr_s"] = 0.025
+    prob["h_ys"] = 0.050
+    prob["t_rdisc"] = 0.05
+    prob["t_sdisc"] = 0.100
+    prob["y_bd"] = 0.00
+    prob["theta_bd"] = 0.00
+    prob["y_sh"] = 0.00
+    prob["theta_sh"] = 0.00
 
     #prob.model.approx_totals(method="fd")
 

@@ -1,17 +1,15 @@
-from setuptools import setup
-
-from os import path
-from io import open
-
+import setuptools
 
 metadata = dict(
     name="lts",
+    url='https://github.com/WISDEM/LTS',
     version="0.0.1",
     description="Design model for low-temperature superconducting generators",
     author="Latha Sethuraman",
-    packages=["lts"],
-    python_requires=">=3.6",
+    packages=setuptools.find_packages(exclude=["test", "examples"]),
+    python_requires=">=3.7",
     zip_safe=True,
+    install_requires=['pyfemm','numpy','openmdao','pandas'],
     )
 
-setup(**metadata)
+setuptools.setup(**metadata)
