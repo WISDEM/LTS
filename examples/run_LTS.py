@@ -12,7 +12,7 @@ def cleanup_femm_files(clean_dir):
 if __name__ == "__main__":
 
     mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
-    output_dir = os.path.join(os.path.dirname(os.path.dirname(mydir)), 'outputs', 'test1')
+    output_dir = os.path.join(mydir, 'outputs', 'test1')
     os.makedirs(output_dir, exist_ok=True)
 
     modeling_options = {}
@@ -27,8 +27,8 @@ if __name__ == "__main__":
     prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
-    prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #'
-    prob.driver.options["maxiter"] = 10
+    prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #
+    prob.driver.options["maxiter"] = 100
     # prob.driver.opt_settings['IPRINT'] = 4
     # prob.driver.opt_settings['ITRM'] = 3
     # prob.driver.opt_settings['ITMAX'] = 10
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     prob.driver.recording_options["record_desvars"] = True
     prob.driver.recording_options["record_objectives"] = True
 
-    prob.model.add_design_var("D_a", lower=7, upper=8, ref=7.5)
+    prob.model.add_design_var("D_a", lower=6, upper=9, ref=7.5)
     prob.model.add_design_var("delta_em", lower=0.060, upper=0.10, ref=0.08)
     prob.model.add_design_var("h_sc", lower=0.03, upper=0.25, ref=0.01)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
@@ -64,18 +64,19 @@ if __name__ == "__main__":
     prob.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
     prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
     prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
-    prob.model.add_objective("mass_total", ref=1e6)
-    #prob.model.add_objective("l_sc", ref=1e3)
+    #prob.model.add_objective("mass_total", ref=1e6)
+    prob.model.add_objective("l_sc", ref=1e3)
 
     # prob.model.add_constraint('K_rad',    lower=0.15,upper=0.3)						#10
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001)
-    prob.model.add_constraint("con_angle2", lower=0.001)
+    #prob.model.add_constraint("con_angle2", lower=0.001)
     #prob.model.add_constraint("E_p", lower=3300, upper=3350)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
+
     prob.model.add_constraint("B_rymax", upper=2.1)
 
-    prob.model.add_constraint("Torque_actual", lower=23.07e6, ref=1e7)
+    prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Critical_current_ratio",upper=1.)
     prob.model.add_constraint("Coil_max_ratio",upper=1.)
 
@@ -131,8 +132,8 @@ if __name__ == "__main__":
     prob["p"] = 21 # 100.0    # rev 1 160
     prob["h_sc"] = 0.0503409354 # rev 1 0.034
     prob["h_yr"] = 0.1254730934  # rev 1 0.045
-    prob["alpha"] = 0.53805442  # rev 1 0.045
-    prob["dalpha"] = 1.0  # rev 1 0.045
+    prob["alpha"] = 1  # rev 1 0.045
+    prob["dalpha"] = 2.0  # rev 1 0.045
     # prob['beta']        =   1.75 # rev 1 0.045
     prob["I_sc"] = 400.4427393  # rev 1 0.045
     prob["N_sc"] = 1502  # rev 1 0.045

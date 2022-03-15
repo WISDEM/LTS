@@ -25,6 +25,8 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     femm.mo_makeplot(1, 1500, "gap_" + str(n) + ".csv", 1)
     femm.mo_makeplot(2, 100, "B_r_normal" + str(n) + ".csv", 1)
     femm.mo_makeplot(3, 100, "B_t_normal" + str(n) + ".csv", 1)
+    #temp_force = femm.mo_lineintegral(3)
+    #temp_torque = femm.mo_lineintegral(4)
     femm.mo_clearcontour()
 
     #        femm.mo_addcontour((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
@@ -62,11 +64,11 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     B_t_normal = np.loadtxt("B_t_normal" + str(n) + ".csv")
 
     circ = B_r_normal[-1, 0]
-    delta_L = np.diff(B_r_normal[:, 0])[0]
-
-    force = np.sum((B_r_normal[:, 1]) ** 2 - (B_t_normal[:, 1]) ** 2) * delta_L
+    force = np.trapz(B_r_normal[:, 1] ** 2 - B_t_normal[:, 1] ** 2, B_r_normal[:,0])
     sigma_n = abs(1 / (8 * np.pi * 1e-7) * force) / circ
-
+    #print(force, force/delta_L, sigma_n, sigma_n*circ)
+    #print(temp_force, np.linalg.norm(temp_force))
+    #print(temp_torque)
     # print ((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r),(radius_sc)*np.cos(alpha_r),(radius_sc)*np.sin(alpha_r),
     # (radius_sc+h_sc)*np.cos(alpha_r),(radius_sc+h_sc)*np.sin(alpha_r),(radius_sc+h_sc)*np.cos(beta_r),
     # (radius_sc+h_sc)*np.sin(beta_r),(radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
@@ -115,7 +117,7 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
     count = 0
     angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
     delta_theta = theta_b_t + theta_b_s
-    for pitch in range(1, Y_q, 2):
+    for pitch in range(1, int(Y_q), 2):
         femm.mi_selectlabel(
             layer_2 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
             layer_2 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
@@ -131,7 +133,7 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
     count = 0
     angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
     delta_theta = theta_b_t + theta_b_s
-    for pitch in range(1, Y_q, 2):
+    for pitch in range(1, int(Y_q), 2):
         femm.mi_selectlabel(
             layer_1 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
             layer_1 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
@@ -160,6 +162,9 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
     femm.mo_bendcontour(theta_p_d, 0.25)
     femm.mo_makeplot(2, 100, "B_r_2.csv", 1)
     femm.mo_makeplot(3, 100, "B_t_2.csv", 1)
+    #temp_Bn = femm.mo_lineintegral(0)
+    #temp_force = femm.mo_lineintegral(3)
+    #temp_torque = femm.mo_lineintegral(4)
     femm.mo_clearcontour()
     femm.mo_close()
 
@@ -167,13 +172,15 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
     B_t_1 = np.loadtxt("B_t_1.csv")
     B_r_2 = np.loadtxt("B_r_2.csv")
     B_t_2 = np.loadtxt("B_t_2.csv")
-    delta_L = np.diff(B_r_1[:, 0])[0]
     circ = B_r_1[-1, 0]
 
-    force = np.array([np.sum(B_r_1[:, 1] * B_t_1[:, 1]), np.sum(B_r_2[:, 1] * B_t_2[:, 1])]) * delta_L
+    force = np.array([np.trapz(B_r_1[:, 1] * B_t_1[:, 1], B_r_1[:, 0]), np.trapz(B_r_2[:, 1] * B_t_2[:, 1], B_r_2[:, 0])])
     sigma_t = abs(1 / (4 * np.pi * 1e-7) * force) / circ
     torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s
-
+    #print(force[-1], sigma_t[-1], sigma_t[-1]*circ, torque[-1])
+    #print(temp_force, np.linalg.norm(temp_force))
+    #print(temp_torque)
+    #print(temp_Bn, np.trapz(B_r_2[:, 1], B_r_2[:, 0]))
     #print("Torque values in MNm:")
     #print(torque[0] / 1e6, torque[1] / 1e6)
 
@@ -210,6 +217,14 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
+        self.add_input("con_angle", 0.0, units="deg", desc="Geometry constraint status")
+        self.add_input("a_m", 0.0, units="m", desc="Coil separation distance")
+        self.add_input("W_sc", 0.0, units="m", desc="SC coil width")
+        self.add_input("Outer_width", 0.0, units="m", desc="Coil outer width")
+        self.add_input("field_coil_x", np.zeros(8), desc="Field coil points")
+        self.add_input("field_coil_y", np.zeros(8), desc="Field coil points")
+        self.add_input("field_coil_xlabel", np.zeros(2), desc="Field coil label points")
+        self.add_input("field_coil_ylabel", np.zeros(2), desc="Field coil label points")
 
         # Outputs
         self.add_output("B_g", 0.0, desc="Peak air gap flux density ")
@@ -225,9 +240,6 @@ class FEMM_Geometry(om.ExplicitComponent):
             0.0,
             desc="Ratio of actual to critical coil flux density, usually constrained to be smaller than 1",
         )
-        self.add_output("a_m", 0.0, units="m", desc="Coil separation distance")
-        self.add_output("W_sc", 0.0, units="m", desc="SC coil width")
-        self.add_output("Outer_width", 0.0, units="m", desc="Coil outer width")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -246,35 +258,35 @@ class FEMM_Geometry(om.ExplicitComponent):
         q = discrete_inputs["q"]
         m = discrete_inputs["m"]
         D_sc = float(inputs["D_sc"])
-        N_sc = int(inputs["N_sc"])
+        N_sc = float(inputs["N_sc"]) #int
         I_sc = float(inputs["I_sc"])
-        N_c = int(inputs["N_c"])
+        N_c = float(inputs["N_c"]) #int
         delta_em = float(inputs["delta_em"])
         I_s = float(inputs["I_s"])
         radius_sc = D_sc / 2
         tau_p = np.pi * (radius_sc * 2 + 2 * h_sc) / (2 * p1)
         theta_p_r = tau_p / (radius_sc + h_sc)
         theta_p_d = np.rad2deg(theta_p_r)
+        x1, x2, x3, x4, x5, x6, x7, x8 = inputs["field_coil_x"]
+        y1, y2, y3, y4, y5, y6, y7, y8 = inputs["field_coil_y"]
+        xlabel1, xlabel2 = inputs["field_coil_xlabel"]
+        ylabel1, ylabel2 = inputs["field_coil_ylabel"]
 
         # Build the geometry of the generator sector
-        if (alpha_d <= 0) or (beta_d > theta_p_d * 0.5):
+        if (alpha_d <= 0) or (float(inputs['con_angle']) < 0):
             outputs["B_g"] = 7
             outputs["B_coil_max"] = 12
             outputs["B_rymax"] = 5
-            outputs["Torque_actual"] = 50e06
-            outputs["Sigma_shear"] = 300000
-            outputs["Sigma_normal"] = 200000
+            outputs["Torque_actual"] = 1.0 #50e6
+            outputs["Sigma_shear"] = 1.0 #300000
+            outputs["Sigma_normal"] = 1.0 #200000
         else:
-            femm.openfemm(1)
-            femm.newdocument(0)
-            femm.mi_probdef(0, "meters", "planar", 1.0e-8, l_s, 30)
-
             slot_radius = D_a * 0.5 - h_s
             yoke_radius = slot_radius - h_yr
             h42 = D_a / 2 - 0.5 * h_s
             Slots = 2 * q * m * p1
             Slots_pp = q * m
-            Y_q = int(Slots / (2 * p1))
+            Y_q = Slots / (2 * p1) #int(
             tau_s = np.pi * D_a / Slots
 
             # bs_taus = 0.45 #UNUSED
@@ -286,104 +298,17 @@ class FEMM_Geometry(om.ExplicitComponent):
             tau_p = np.pi * (radius_sc * 2 + 2 * h_sc) / (2 * p1)
             Current = 0
             theta_p_d = np.rad2deg(theta_p_r)
-            alphap_taup_r = theta_p_r - 2 * beta_r
-            alphap_taup_angle_r = beta_r + alphap_taup_r - alpha_r
-            alphap_taup_angle_d = np.rad2deg(alphap_taup_angle_r)
+            #alphap_taup_r = theta_p_r - 2 * beta_r
+            #alphap_taup_angle_r = beta_r + alphap_taup_r - alpha_r
+            #alphap_taup_angle_d = np.rad2deg(alphap_taup_angle_r)
 
             # Draw the field coil
-            m_1 = -1 / (np.tan(theta_p_r * 0.5))  # slope of the tangent line
-            x_coord = radius_sc * np.cos(theta_p_r * 0.5)
-            y_coord = radius_sc * np.sin(theta_p_r * 0.5)
-            c1 = y_coord - m_1 * x_coord
-
-            if alpha_r <= 1:
-                angle = alpha_r
-            else:
-                angle = np.tan(alpha_r)
-            m_2 = angle
-            c2 = 0
-
-            m_3 = m_1  # tangent offset
-            x_coord3 = (radius_sc + h_sc) * np.cos(theta_p_r * 0.5)
-            y_coord3 = (radius_sc + h_sc) * np.sin(theta_p_r * 0.5)
-            c3 = y_coord3 - m_3 * x_coord3
-
-            mlabel = m_1
-
-            x_label = (radius_sc + h_sc * 0.5) * np.cos(theta_p_r * 0.5)
-            y_label = (radius_sc + h_sc * 0.5) * np.sin(theta_p_r * 0.5)
-            clabel = y_label - mlabel * x_label
-
-            mlabel2 = np.tan(alpha_r + (beta_r - alpha_r) * 0.5)
-            clabel2 = 0
-
-            mlabel3 = np.tan(theta_p_r - alpha_r - (beta_r - alpha_r) * 0.5)
-            clabel3 = 0
-
-            m_6 = np.tan(beta_r)
-            c6 = 0
-
-            x1 = (c1 - c2) / (m_2 - m_1)
-            y1 = m_1 * x1 + c1
+            femm.openfemm(1)
+            femm.newdocument(0)
+            femm.mi_probdef(0, "meters", "planar", 1.0e-8, l_s, 30)
 
             femm.mi_addnode(x1, y1)
-
-            m_4 = np.tan(theta_p_r * 0.5)
-
-            c4 = y1 - m_4 * x1
-
-            x2 = (c3 - c4) / (m_4 - m_3)
-            y2 = m_4 * x2 + c4
-
             femm.mi_addnode(x2, y2)
-
-            x4 = (c1 - c6) / (m_6 - m_1)
-            y4 = m_1 * x4 + c1
-
-            m_5 = np.tan(theta_p_r * 0.5)
-            c5 = y4 - m_5 * x4
-
-            x3 = (c3 - c5) / (m_5 - m_3)
-            y3 = m_3 * x3 + c3
-
-            m_7 = np.tan(theta_p_r - alpha_r)
-            c7 = 0
-
-            x5 = (c1 - c7) / (m_7 - m_1)
-            y5 = m_1 * x5 + c1
-
-            m_8 = m_4
-            c8 = y5 - m_8 * x5
-
-            x6 = (c3 - c8) / (m_8 - m_3)
-            y6 = m_3 * x6 + c3
-
-            m_9 = np.tan(theta_p_r - beta_r)
-            c9 = 0
-
-            x8 = (c1 - c9) / (m_9 - m_1)
-            y8 = m_1 * x8 + c1
-
-            m_10 = m_5
-            c10 = y8 - m_10 * x8
-
-            x7 = (c3 - c10) / (m_10 - m_3)
-            y7 = m_3 * x7 + c3
-
-            xlabel1 = (clabel - clabel2) / (mlabel2 - mlabel)
-            ylabel1 = mlabel * xlabel1 + clabel
-
-            xlabel2 = (clabel - clabel3) / (mlabel3 - mlabel)
-            ylabel2 = mlabel * xlabel2 + clabel
-
-            outputs["a_m"] = 2 * (
-                np.sqrt(
-                    (radius_sc * np.cos(theta_p_r * 0.5) - x4) ** 2 + ((radius_sc * np.sin(theta_p_r * 0.5) - y4) ** 2)
-                )
-            )
-            outputs["W_sc"] = np.sqrt((x1 - x4) ** 2 + (y1 - y4) ** 2)
-            outputs["Outer_width"] = outputs["a_m"] + 2 * outputs["W_sc"]
-
             femm.mi_addnode(x3, y3)
             femm.mi_addnode(x4, y4)
             femm.mi_addnode(x5, y5)
@@ -723,13 +648,13 @@ class FEMM_Geometry(om.ExplicitComponent):
             pitch = 1
 
             Phases = ["A+", "D+", "C-", "F-", "B+", "E+", "A-", "D-", "C-"]
-            N_c_a = [2 * N_c, 4 * N_c, 4 * N_c, 4 * N_c, 4 * N_c, 4 * N_c, 2 * N_c, 2 * N_c, 2 * N_c]
+            #N_c_a = [2 * N_c, 4 * N_c, 4 * N_c, 4 * N_c, 4 * N_c, 4 * N_c, 2 * N_c, 2 * N_c, 2 * N_c]
 
             count = 0
             angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
             delta_theta = theta_b_t + theta_b_s
 
-            for pitch in range(1, Y_q, 2):
+            for pitch in range(1, int(Y_q), 2):
                 femm.mi_selectlabel(
                     layer_2 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
                     layer_2 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
@@ -745,7 +670,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             count = 0
             angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
             delta_theta = theta_b_t + theta_b_s
-            for pitch in range(1, Y_q, 2):
+            for pitch in range(1, int(Y_q), 2):
                 femm.mi_selectlabel(
                     layer_1 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
                     layer_1 * np.sin(angle_r + (pitch - 1) * (delta_theta)),

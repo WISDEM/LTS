@@ -9,12 +9,12 @@ class LTS_Outer_Rotor_Opt(om.Group):
         self.options.declare("modeling_options")
 
     def setup(self):
-        self.linear_solver = lbgs = om.LinearBlockJac()  # om.LinearBlockGS()
-        self.nonlinear_solver = nlbgs = om.NonlinearBlockGS()
-        nlbgs.options["maxiter"] = 3
-        nlbgs.options["atol"] = 1e-2
-        nlbgs.options["rtol"] = 1e-8
-        nlbgs.options["iprint"] = 2
+        #self.linear_solver = lbgs = om.LinearBlockJac()  # om.LinearBlockGS()
+        #self.nonlinear_solver = nlbgs = om.NonlinearBlockGS()
+        #nlbgs.options["maxiter"] = 3
+        #nlbgs.options["atol"] = 1e-2
+        #nlbgs.options["rtol"] = 1e-8
+        #nlbgs.options["iprint"] = 2
         modeling_options = self.options["modeling_options"]
 
         ivcs = om.IndepVarComp()
