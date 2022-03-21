@@ -27,7 +27,7 @@ if __name__ == "__main__":
     prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
-    prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #
+    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
     prob.driver.options["maxiter"] = 100
     # prob.driver.opt_settings['IPRINT'] = 4
     # prob.driver.opt_settings['ITRM'] = 3

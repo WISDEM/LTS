@@ -117,34 +117,36 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
     count = 0
     angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
     delta_theta = theta_b_t + theta_b_s
-    for pitch in range(1, int(Y_q), 2):
-        femm.mi_selectlabel(
+    for pitch in range(1, int(np.ceil(Y_q)), 2):
+        try:
+            femm.mi_selectlabel(
             layer_2 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
             layer_2 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
-        )
-        femm.mi_selectlabel(
+            )
+            femm.mi_selectlabel(
             layer_2 * np.cos(angle_r + pitch * delta_theta), layer_2 * np.sin(angle_r + pitch * delta_theta)
-        )
-        femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c)
-        # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c_a1[count])
-        femm.mi_clearselected()
-        count = count + 1
+            )
+            femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c)
+            # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c_a1[count])
+            femm.mi_clearselected()
+            count = count + 1
 
     count = 0
     angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
     delta_theta = theta_b_t + theta_b_s
-    for pitch in range(1, int(Y_q), 2):
-        femm.mi_selectlabel(
+    for pitch in range(1, int(np.ceil(Y_q)), 2):
+        try:
+            femm.mi_selectlabel(
             layer_1 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
             layer_1 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
-        )
-        femm.mi_selectlabel(
+            )
+            femm.mi_selectlabel(
             layer_1 * np.cos(angle_r + pitch * delta_theta), layer_1 * np.sin(angle_r + pitch * delta_theta)
-        )
-        femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c)
-        # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c_a1[count+1])
-        femm.mi_clearselected()
-        count = count + 1
+            )
+            femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c)
+            # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c_a1[count+1])
+            femm.mi_clearselected()
+            count = count + 1
 
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(T_elec + np.pi / 6))
     femm.mi_modifycircprop("C-", 1, -I_s * np.sin(T_elec - 4 * np.pi / 6))
@@ -654,34 +656,36 @@ class FEMM_Geometry(om.ExplicitComponent):
             angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
             delta_theta = theta_b_t + theta_b_s
 
-            for pitch in range(1, int(Y_q), 2):
-                femm.mi_selectlabel(
+            for pitch in range(1, int(np.ceil(Y_q)), 2):
+                try:
+                    femm.mi_selectlabel(
                     layer_2 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
                     layer_2 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
-                )
-                femm.mi_selectlabel(
+                    )
+                    femm.mi_selectlabel(
                     layer_2 * np.cos(angle_r + pitch * delta_theta), layer_2 * np.sin(angle_r + pitch * delta_theta)
-                )
-                femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c)
-                # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c_a[count])
-                femm.mi_clearselected()
-                count = count + 1
+                    )
+                    femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c)
+                    # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c_a[count])
+                    femm.mi_clearselected()
+                    count = count + 1
 
             count = 0
             angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
             delta_theta = theta_b_t + theta_b_s
-            for pitch in range(1, int(Y_q), 2):
-                femm.mi_selectlabel(
+            for pitch in range(1, int(np.ceil(Y_q)), 2):
+                try:
+                    femm.mi_selectlabel(
                     layer_1 * np.cos(angle_r + (pitch - 1) * (delta_theta)),
                     layer_1 * np.sin(angle_r + (pitch - 1) * (delta_theta)),
-                )
-                femm.mi_selectlabel(
+                    )
+                    femm.mi_selectlabel(
                     layer_1 * np.cos(angle_r + pitch * delta_theta), layer_1 * np.sin(angle_r + pitch * delta_theta)
-                )
-                femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c)
-                # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c_a[count+1])
-                femm.mi_clearselected()
-                count = count + 1
+                    )
+                    femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c)
+                    # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c_a[count+1])
+                    femm.mi_clearselected()
+                    count = count + 1
 
             # Now, the finished input geometry can be displayed.
             femm.mi_zoomnatural()
