@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
     prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
-    prob.driver.options["maxiter"] = 100
+    prob.driver.options["maxiter"] = 500
     # prob.driver.opt_settings['IPRINT'] = 4
     # prob.driver.opt_settings['ITRM'] = 3
     # prob.driver.opt_settings['ITMAX'] = 10
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001)
     #prob.model.add_constraint("con_angle2", lower=0.001)
-    #prob.model.add_constraint("E_p", lower=3300, upper=3350)
+    prob.model.add_constraint("E_p_ratio", lower=0.95, upper=1.05)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
 
     prob.model.add_constraint("B_rymax", upper=2.1)
@@ -123,23 +123,23 @@ if __name__ == "__main__":
 
     # Initial design variables for a PMSG designed for a 15MW turbine
     prob["P_rated"] = 17e6
-    prob["T_rated"] = 23.07e6  # rev 1 9.94718e6
-    prob["N_nom"] = 7.7  # 7.5598598  #8.68                # rpm 9.6
-    prob["l_s"] = 1.00390095  # 8.68                # rpm 9.6
-    prob["D_a"] = 7.74736313  # rev 1 6.8
-    prob["delta_em"] = 0.02  # rev 2.1
-    prob["h_s"] = 0.1803019703  # rev 1 0.3
-    prob["p"] = 21 # 100.0    # rev 1 160
-    prob["h_sc"] = 0.0503409354 # rev 1 0.034
-    prob["h_yr"] = 0.1254730934  # rev 1 0.045
-    prob["alpha"] = 1  # rev 1 0.045
-    prob["dalpha"] = 2.0  # rev 1 0.045
-    # prob['beta']        =   1.75 # rev 1 0.045
-    prob["I_sc"] = 400.4427393  # rev 1 0.045
-    prob["N_sc"] = 1502  # rev 1 0.045
-    prob["N_c"] = 2
-    prob["I_s"] = 2995.06090335
+    prob["T_rated"] = 23.07e6
+    prob["E_p_target"] = 23.07e6
+    prob["N_nom"] = 7.7
+    prob["D_a"] = 8.235
+    prob["delta_em"] = 0.059
+    prob["h_s"] = 0.1667
+    prob["p"] = 20.
+    prob["h_sc"] = 0.0614
+    prob["h_yr"] = 0.1254730934
+    prob["alpha"] = 0.338
+    prob["dalpha"] = 2.0
+    prob["I_sc"] = 415.15
+    prob["N_sc"] = 1540
+    prob["N_c"] = 2.6
+    prob["I_s"] = 3029.66
     prob["J_s"] = 3.0
+    prob["l_s"] = 1.038
 
     # Material properties
     prob["rho_steel"] = 7850
@@ -222,6 +222,17 @@ if __name__ == "__main__":
             "Iron mass",
             "Total active mass",
             "Efficiency",
+            "Rotor disc thickness",
+            "Rotor yoke thickness",
+            "Stator disc thickness",
+            "Stator yoke thickness",
+            "Rotor radial deflection",
+            "Rotor axial deflection",
+            "Stator radial deflection",
+            "Stator axial deflection",
+            "Rotor structural mass",
+            "Stator structural mass",
+            "Total structural mass",
         ],
         "Values": [
             prob.get_val("P_rated", units="MW"),
@@ -247,7 +258,7 @@ if __name__ == "__main__":
             prob["p1"],
             prob["E_p"],
             prob["I_s"],
-            prob["S"],
+            prob["Slots"],
             int(prob["N_c"]),
             prob["J_s"],
             prob["R_s"],
@@ -268,6 +279,17 @@ if __name__ == "__main__":
             prob.get_val("Iron", units="t"),
             prob.get_val("Mass", units="t"),
             prob["gen_eff"] * 100,
+            prob.get_val("t_rdisc", units="mm"),
+            prob.get_val("h_yr_s", units="mm"),
+            prob.get_val("t_sdisc", units="mm"),
+            prob.get_val("h_ys", units="mm"),
+            prob.get_val("u_ar", units="mm"),
+            prob.get_val("y_ar", units="mm"),
+            prob.get_val("u_as", units="mm"),
+            prob.get_val("y_as", units="mm"),
+            prob.get_val("Structural_mass_rotor", units="t"),
+            prob.get_val("Structural_mass_stator", units="t"),
+            prob.get_val("mass_total", units="t"),
         ],
         "Limit": [
             "",
@@ -311,6 +333,17 @@ if __name__ == "__main__":
             "",
             "",
             "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            prob.get_val("u_allowable_r", units="mm"),
+            prob.get_val("y_allowable_r", units="mm"),
+            prob.get_val("u_allowable_s", units="mm"),
+            prob.get_val("y_allowable_s", units="mm"),
             "",
             "",
             "",
@@ -360,6 +393,17 @@ if __name__ == "__main__":
             "Tons",
             "Tons",
             "%",
+            "mm",
+            "mm",
+            "mm",
+            "mm",
+            "mm",
+            "mm",
+            "mm",
+            "mm",
+            "tons",
+            "tons",
+            "tons",
         ],
     }
     #print(raw_data)

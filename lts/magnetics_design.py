@@ -31,7 +31,7 @@ class LTS_active(om.ExplicitComponent):
 
         # field coil parameters
         self.add_input("h_sc", 0.0, units="m", desc="SC coil height")
-        self.add_input("alpha_p", 0.0, desc="pole arc coefficient")
+        #self.add_input("alpha_p", 0.0, desc="pole arc coefficient")
         self.add_input("alpha", 0.0, units="deg", desc="Start angle of field coil")
         self.add_input("dalpha", 0.0, units="deg", desc="Angle subtended by field coil")
         self.add_input("h_yr", 0.0, units="m", desc="rotor yoke height")
@@ -78,11 +78,10 @@ class LTS_active(om.ExplicitComponent):
 
         # Magnetic loading
         self.add_output("tau_p", 0.0, units="m", desc="Pole pitch")
-        self.add_output("b_p", 0.0, units="m", desc="distance between positive and negative side of field coil")
+        #self.add_output("b_p", 0.0, units="m", desc="distance between positive and negative side of field coil")
         self.add_output("alpha_u", 0.0, units="rad", desc="slot angle")
         self.add_output("tau_v", 0.0, units="m", desc="Phase zone span")
         self.add_output("zones", 0.0, desc="Phase zones")
-        self.add_output("y_Q", 0.0, desc="Slots per pole also pole pitch")
         self.add_output("delta", 0.0, units="rad", desc="short-pitch angle")
         self.add_output("k_p1", 0.0, desc="Pitch factor-fundamental harmonic")
         self.add_output("k_d1", 0.0, desc="Distribution factor-fundamental harmonic")
@@ -123,8 +122,9 @@ class LTS_active(om.ExplicitComponent):
 
         # Other parameters
         # self.add_output("R_out", 0.0, units="m", desc="Outer radius")
-        self.add_output("S", 0.0, desc="Stator slots")
+        self.add_output("Slots", 0.0, desc="Stator slots")
         self.add_output("Slot_aspect_ratio", 0.0, desc="Slot aspect ratio")
+        self.add_output("y_Q", 0.0, desc="Slots per pole also pole pitch")
 
         # Mass Outputs
         self.add_output("mass_SC", 0.0, units="kg", desc="SC conductor mass per racetrack")
@@ -145,7 +145,7 @@ class LTS_active(om.ExplicitComponent):
         l_s = float(inputs["l_s"])
         h_s = float(inputs["h_s"])
         h_sc = float(inputs["h_sc"])
-        alpha_p = float(inputs["alpha_p"])
+        #alpha_p = float(inputs["alpha_p"])
         alpha_d = float(inputs["alpha"])
         alpha_r = np.deg2rad(alpha_d)
         dalpha = float(inputs["dalpha"])
@@ -175,10 +175,10 @@ class LTS_active(om.ExplicitComponent):
         # Calculating pole pitch
         # r_s = 0.5 * D_a  # Stator outer radius # UNUSED
         outputs["tau_p"] = tau_p = np.pi * (R_sc + h_sc) / p1
-        outputs["b_p"] = alpha_p * tau_p
+        #outputs["b_p"] = alpha_p * tau_p
 
         # Calculating winding factor
-        outputs["S"] = S = q * 2 * p1 * m
+        outputs["Slots"] = S = q * 2 * p1 * m
         outputs["tau_s"] = tau_s = np.pi * (D_a) / S  # Slot pitch
         outputs["alpha_u"] = alpha_u = p1 * 2 * np.pi / S  # slot angle
         outputs["tau_v"] = tau_p / m
@@ -348,12 +348,8 @@ class LTS_active(om.ExplicitComponent):
         # Calculating volumes and masses
         # V_Cus 	                    =   m*L_Cus*(A_Cuscalc*(10**-6))     # copper volume
         # outputs["h_t   h_t =            =   (h_s+h_1+h_0)
-        V_Fery = (
-            l_s
-            * np.pi
-            * 0.25
-            * ((D_a - 2 * h_s) ** 2 - (D_a - 2 * h_s - 2 * h_yr) ** 2)
-        )  # volume of iron in stator tooth
+        # volume of iron in stator tooth
+        V_Fery = 0.25 * np.pi * l_s * ((D_a - 2 * h_s) ** 2 - (D_a - 2 * h_s - 2 * h_yr) ** 2)
         # outputs["Copper		 Copper =    =   V_Cus*rho_Copper
         outputs["Iron"] = Iron = V_Fery * rho_Fe  # Mass of stator yoke
         # k_pf = 0.8 # UNUSED
@@ -410,6 +406,7 @@ class Results(om.ExplicitComponent):
         self.add_input("P_add", units="W", desc="Additional losses")
         self.add_input("P_brushes", units="W", desc="brush losses")
         self.add_input("l_s", 0.0, units="m", desc="Stator core length")
+        self.add_input("E_p_target", 0.0, units="V", desc="target terminal voltage")
         # self.add_output("con_I_sc", 0.0, units="A/(mm*mm)", desc="SC current ")
         # self.add_output("con_N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_output("E_p", 0.0, units="V", desc="terminal voltage")
@@ -418,6 +415,7 @@ class Results(om.ExplicitComponent):
         self.add_output("P_Losses", units="W", desc="Total power losses")
         self.add_output("gen_eff", desc="Generator efficiency")
         self.add_output("torque_ratio", desc="Whether torque meets requirement")
+        self.add_output("E_p_ratio", desc="Whether terminal voltage meets requirement")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -442,14 +440,14 @@ class Results(om.ExplicitComponent):
         l_s = float(inputs["l_s"])
         T_rated = float(inputs["T_rated"])
         T_actual = float(inputs["Torque_actual"])
-
+        E_p_target = float(inputs["E_p_target"])
         # outputs["con_N_sc"] = con_N_sc = N_sc - N_sc_out
         # outputs["con_I_sc"] = con_I_sc = I_sc - I_sc_out
         outputs["N_sc_layer"] = int(N_sc / N_l)
 
         # Calculating  voltage per phase
         om_m = 2 * np.pi * N_nom / 60
-        outputs["E_p"] = l_s * (D_sc * 0.5 * k_w1 * B_g * om_m * N_s)
+        outputs["E_p"] = E_p = l_s * (D_sc * 0.5 * k_w1 * B_g * om_m * N_s)
 
         # print ("Voltage and lengths are:",outputs["E_p,l_s )
 
@@ -461,3 +459,4 @@ class Results(om.ExplicitComponent):
         outputs["P_Losses"] = P_Losses = Cu_losses + P_Fe + P_add + P_brushes
         outputs["gen_eff"] = 1 - P_Losses / P_rated
         outputs["torque_ratio"] = T_actual / T_rated
+        outputs["E_p_ratio"] = E_p / E_p_target

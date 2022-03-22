@@ -130,6 +130,8 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
             # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c_a1[count])
             femm.mi_clearselected()
             count = count + 1
+        except:
+            continue
 
     count = 0
     angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
@@ -147,6 +149,8 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
             # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c_a1[count+1])
             femm.mi_clearselected()
             count = count + 1
+        except:
+            continue
 
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(T_elec + np.pi / 6))
     femm.mi_modifycircprop("C-", 1, -I_s * np.sin(T_elec - 4 * np.pi / 6))
@@ -227,6 +231,8 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("field_coil_y", np.zeros(8), desc="Field coil points")
         self.add_input("field_coil_xlabel", np.zeros(2), desc="Field coil label points")
         self.add_input("field_coil_ylabel", np.zeros(2), desc="Field coil label points")
+        self.add_input("Slots", 0.0, desc="Stator slots")
+        self.add_input("y_Q", 0.0, desc="Slots per pole also pole pitch")
 
         # Outputs
         self.add_output("B_g", 0.0, desc="Peak air gap flux density ")
@@ -265,6 +271,8 @@ class FEMM_Geometry(om.ExplicitComponent):
         N_c = float(inputs["N_c"]) #int
         delta_em = float(inputs["delta_em"])
         I_s = float(inputs["I_s"])
+        Slots = float(inputs["Slots"])
+        Y_q = float(inputs["y_Q"])
         radius_sc = D_sc / 2
         tau_p = np.pi * (radius_sc * 2 + 2 * h_sc) / (2 * p1)
         theta_p_r = tau_p / (radius_sc + h_sc)
@@ -286,9 +294,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             slot_radius = D_a * 0.5 - h_s
             yoke_radius = slot_radius - h_yr
             h42 = D_a / 2 - 0.5 * h_s
-            Slots = 2 * q * m * p1
             Slots_pp = q * m
-            Y_q = Slots / (2 * p1) #int(
             tau_s = np.pi * D_a / Slots
 
             # bs_taus = 0.45 #UNUSED
@@ -669,6 +675,8 @@ class FEMM_Geometry(om.ExplicitComponent):
                     # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count], 0, 8, N_c_a[count])
                     femm.mi_clearselected()
                     count = count + 1
+                except:
+                    continue
 
             count = 0
             angle_r = theta_b_t * 0.5 + theta_b_s * 0.5
@@ -686,6 +694,8 @@ class FEMM_Geometry(om.ExplicitComponent):
                     # femm.mi_setblockprop("20 SWG", 1, 1, Phases[count + 1], 0, 8, N_c_a[count+1])
                     femm.mi_clearselected()
                     count = count + 1
+                except:
+                    continue
 
             # Now, the finished input geometry can be displayed.
             femm.mi_zoomnatural()

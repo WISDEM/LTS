@@ -28,7 +28,7 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("h_yr", 0.0, units="m", desc="Rotor yoke height")
         ivcs.add_output("h_sc", 0.0, units="m", desc="SC coil height ")
 
-        ivcs.add_output("alpha_p", 0.0, desc="pole arc coefficient")
+        #ivcs.add_output("alpha_p", 0.0, desc="pole arc coefficient")
         ivcs.add_output("alpha", 0.0, units="deg", desc="Start angle of field coil")
         ivcs.add_output("dalpha", 0.0, units="deg", desc="Start angle of field coil")
         ivcs.add_output("I_sc", 0.0, units="A", desc="SC current")
