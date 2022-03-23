@@ -27,8 +27,8 @@ if __name__ == "__main__":
     prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
-    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
-    prob.driver.options["maxiter"] = 500
+    prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #
+    prob.driver.options["maxiter"] = 50 #500 #
     # prob.driver.opt_settings['IPRINT'] = 4
     # prob.driver.opt_settings['ITRM'] = 3
     # prob.driver.opt_settings['ITMAX'] = 10
@@ -54,7 +54,6 @@ if __name__ == "__main__":
     prob.model.add_design_var("l_s", lower=1, upper=2.5, ref=1.625)
     prob.model.add_design_var("alpha", lower=0.5, upper=20, ref=10)
     prob.model.add_design_var("dalpha", lower=1, upper=10, ref=10)
-    # prob.model.add_design_var('beta', lower=0.75, upper=20,ref=10)
     prob.model.add_design_var("I_sc", lower=200, upper=700, ref=450)
     prob.model.add_design_var("N_sc", lower=1500, upper=2500, ref=1500)
     prob.model.add_design_var("N_c", lower=2, upper=30, ref=16)
@@ -76,9 +75,10 @@ if __name__ == "__main__":
 
     prob.model.add_constraint("B_rymax", upper=2.1)
 
+    prob.model.add_constraint("gen_eff", lower=0.97)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Critical_current_ratio",upper=1.)
-    prob.model.add_constraint("Coil_max_ratio",upper=1.)
+    #prob.model.add_constraint("Coil_max_ratio",upper=1.) # Consider user-defined limit instead of load line
 
     prob.model.add_constraint("U_rotor_radial_constraint", lower=0.01)
     prob.model.add_constraint("U_rotor_axial_constraint", lower=0.01)
@@ -124,22 +124,22 @@ if __name__ == "__main__":
     # Initial design variables for a PMSG designed for a 15MW turbine
     prob["P_rated"] = 17e6
     prob["T_rated"] = 23.07e6
-    prob["E_p_target"] = 23.07e6
+    prob["E_p_target"] = 3300.0
     prob["N_nom"] = 7.7
-    prob["D_a"] = 8.235
-    prob["delta_em"] = 0.059
-    prob["h_s"] = 0.1667
-    prob["p"] = 20.
-    prob["h_sc"] = 0.0614
-    prob["h_yr"] = 0.1254730934
-    prob["alpha"] = 0.338
-    prob["dalpha"] = 2.0
-    prob["I_sc"] = 415.15
-    prob["N_sc"] = 1540
-    prob["N_c"] = 2.6
-    prob["I_s"] = 3029.66
+    prob["D_a"] = 6.54607922
+    prob["delta_em"] = 0.05936839
+    prob["h_s"] = 0.18680325
+    prob["p"] = 24.84259839
+    prob["h_sc"] = 0.07069314
+    prob["h_yr"] = 0.15353083
+    prob["alpha"] = 1.45574694
+    prob["dalpha"] = 1.13394447
+    prob["I_sc"] = 479.19800754
+    prob["N_sc"] = 1472.97322902
+    prob["N_c"] = 5.51261838
+    prob["I_s"] = 2979.3387257
     prob["J_s"] = 3.0
-    prob["l_s"] = 1.038
+    prob["l_s"] = 1.0
 
     # Material properties
     prob["rho_steel"] = 7850

@@ -8,6 +8,14 @@ import femm
 import numpy as np
 import openmdao.api as om
 
+def bad_inputs(outputs):
+    outputs["B_g"] = 7
+    outputs["B_coil_max"] = 12
+    outputs["B_rymax"] = 5
+    outputs["Torque_actual"] = 1.0 #50e6
+    outputs["Sigma_shear"] = 1.0 #300000
+    outputs["Sigma_normal"] = 1.0 #200000
+    return outputs
 
 def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n):
     # After looking at the femm results, this function post-processes them, no electrical load condition
@@ -284,12 +292,7 @@ class FEMM_Geometry(om.ExplicitComponent):
 
         # Build the geometry of the generator sector
         if (alpha_d <= 0) or (float(inputs['con_angle']) < 0):
-            outputs["B_g"] = 7
-            outputs["B_coil_max"] = 12
-            outputs["B_rymax"] = 5
-            outputs["Torque_actual"] = 1.0 #50e6
-            outputs["Sigma_shear"] = 1.0 #300000
-            outputs["Sigma_normal"] = 1.0 #200000
+            outputs = bad_inputs(outputs)
         else:
             slot_radius = D_a * 0.5 - h_s
             yoke_radius = slot_radius - h_yr
@@ -703,30 +706,32 @@ class FEMM_Geometry(om.ExplicitComponent):
             femm.mi_saveas("coil_design_new.fem")
 
             # Analyze geometry with pyfemm
-            femm.mi_analyze()
+            try:
+                femm.mi_analyze()
 
-            # Load and post-process results
-            femm.mi_loadsolution()
-            n = 0
-            outputs["B_g"], outputs["B_rymax"], outputs["B_coil_max"], outputs["Sigma_normal"] = run_post_process(
+                # Load and post-process results
+                femm.mi_loadsolution()
+                n = 0
+                outputs["B_g"], outputs["B_rymax"], B_coil_max, outputs["Sigma_normal"] = run_post_process(
                 D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n
-            )
-            Load_line_slope = I_sc / float(outputs["B_coil_max"])
-            # print("Computing load line with slope {}".format(Load_line_slope))
-            a = 5.8929
-            b = -(Load_line_slope + 241.32)
-            c = 1859.9
-            B_o = (-b - np.sqrt(b ** 2.0 - 4.0 * a * c)) / 2.0 / a
-            # I_c = B_o * Load_line_slope #UNUSED
+                )
+                outputs["B_coil_max"] = B_coil_max
+                Load_line_slope = I_sc / B_coil_max
+                # SHOULD STRONGLY CONSIDER A USER DEFINED LIMIT INSTEAD
+                a = 5.8929
+                b = -(Load_line_slope + 241.32)
+                c = 1859.9
+                B_o = (-b - np.sqrt(b ** 2.0 - 4.0 * a * c)) / 2.0 / a
+                # I_c = B_o * Load_line_slope #UNUSED
 
-            # Populate openmdao outputs
-            # Max current from manufacturer of superconducting coils, quadratic fit
-            outputs["margin_I_c"] = float(
-                3.5357 * outputs["B_coil_max"] ** 2.0 - 144.79 * outputs["B_coil_max"] + 1116.0
-            )
-            outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
-            # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
-            outputs["Coil_max_ratio"] = outputs["B_coil_max"] / B_o
-            outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(
+                # Populate openmdao outputs
+                # Max current from manufacturer of superconducting coils, quadratic fit
+                outputs["margin_I_c"] = 3.5357 * B_coil_max ** 2.0 - 144.79 * B_coil_max + 1116.0
+                outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
+                # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
+                outputs["Coil_max_ratio"] = B_coil_max / B_o
+                outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(
                 D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p
-            )
+                )
+            except:
+                outputs = bad_inputs(outputs)
