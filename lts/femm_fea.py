@@ -38,7 +38,6 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     femm.mo_clearcontour()
 
     #        femm.mo_addcontour((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
-    #        femm.mo_addcontour((radius_sc)*np.cos(alpha_r),(radius_sc)*np.sin(alpha_r))
     #        femm.mo_addcontour((radius_sc+h_sc)*np.cos(alpha_r),(radius_sc+h_sc)*np.sin(alpha_r))
     #        femm.mo_addcontour((radius_sc+h_sc)*np.cos(beta_r),(radius_sc+h_sc)*np.sin(beta_r))
     #        femm.mo_addcontour((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
@@ -334,7 +333,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             femm.mi_addsegment(x8, y8, x7, y7)
             femm.mi_addsegment(x5, y5, x8, y8)
             femm.mi_addsegment(x6, y6, x7, y7)
-            femm.mi_addnode(0, 0)
+            #femm.mi_addnode(0, 0)
 
             # Draw the stator slots and Stator coils
             femm.mi_addnode(D_a / 2 * np.cos(0), D_a / 2 * np.sin(0))
@@ -501,7 +500,7 @@ class FEMM_Geometry(om.ExplicitComponent):
 
             # femm.mi_addsegment(slot_radius*np.cos(theta_p_r),slot_radius*np.sin(theta_p_r),D_a/2*np.cos(theta_p_r),D_a/2*np.sin(theta_p_r))
 
-            r_o = (radius_sc + h_sc) * 3
+            r_o = (radius_sc + h_sc) * 1.05
 
             # femm.mi_addsegment(D_a/2*np.cos(0),D_a/2*np.sin(0),radius_sc*np.cos(0),radius_sc*np.sin(0))
 
@@ -548,33 +547,35 @@ class FEMM_Geometry(om.ExplicitComponent):
             )
             femm.mi_addsegment(D_a * 0.5 * np.cos(0), D_a * 0.5 * np.sin(0), r_o * np.cos(0), r_o * np.sin(0))
             femm.mi_addsegment(0, 0, yoke_radius * np.cos(0), yoke_radius * np.sin(0))
+            femm.mi_selectarcsegment(yoke_radius * np.cos(0), yoke_radius * np.sin(0))
+            femm.mi_setarcsegmentprop(5, "Dirichlet", 0, 5)
 
-            femm.mi_selectsegment(0.0, 0)
-            femm.mi_setsegmentprop("apbc1", 100, 0, 0, 6)
-            femm.mi_clearselected()
+#            femm.mi_selectsegment(0.0, 0)
+#            femm.mi_setsegmentprop("apbc1", 100, 0, 0, 6)
+#            femm.mi_clearselected()
 
             femm.mi_selectsegment(slot_radius * 0.999 * np.cos(0), slot_radius * 0.999 * np.sin(0))
-            femm.mi_setsegmentprop("apbc2", 100, 0, 0, 6)
+            femm.mi_setsegmentprop("apbc1", 100, 0, 0, 6)
             femm.mi_clearselected()
             femm.mi_selectsegment(h42 * 0.99 * np.cos(0), h42 * 0.99 * np.sin(0))
-            femm.mi_setsegmentprop("apbc3", 100, 0, 0, 6)
+            femm.mi_setsegmentprop("apbc2", 100, 0, 0, 6)
             femm.mi_clearselected()
             femm.mi_selectsegment(0.99 * D_a * 0.5 * np.cos(0), 0.99 * D_a * 0.5 * np.sin(0))
-            femm.mi_setsegmentprop("apbc4", 1, 0, 0, 6)
+            femm.mi_setsegmentprop("apbc3", 1, 0, 0, 6)
             femm.mi_clearselected()
             femm.mi_selectsegment(r_o * 0.95 * np.cos(0), r_o * 0.95 * np.sin(0))
-            femm.mi_setsegmentprop("apbc5", 100, 0, 0, 6)
+            femm.mi_setsegmentprop("apbc4", 100, 0, 0, 6)
             femm.mi_clearselected()
 
             femm.mi_selectgroup(6)
             femm.mi_copyrotate(0, 0, theta_p_d, 1)
 
-            femm.mi_selectsegment(h42 * 0.99 * np.cos(theta_p_r), h42 * 0.99 * np.sin(theta_p_r))
-            femm.mi_setsegmentprop("apbc3", 100, 0, 0, 6)
-            femm.mi_clearselected()
-            femm.mi_selectsegment(D_a * 0.5 * 0.99 * np.cos(theta_p_r), D_a * 0.5 * 0.99 * np.sin(theta_p_r))
-            femm.mi_setsegmentprop("apbc4", 100, 0, 0, 6)
-            femm.mi_clearselected()
+#            femm.mi_selectsegment(h42 * 0.99 * np.cos(theta_p_r), h42 * 0.99 * np.sin(theta_p_r))
+#            femm.mi_setsegmentprop("apbc3", 100, 0, 0, 6)
+#            femm.mi_clearselected()
+#            femm.mi_selectsegment(D_a * 0.5 * 0.99 * np.cos(theta_p_r), D_a * 0.5 * 0.99 * np.sin(theta_p_r))
+#            femm.mi_setsegmentprop("apbc4", 100, 0, 0, 6)
+#            femm.mi_clearselected()
 
             iron_label = yoke_radius + (slot_radius - yoke_radius) * 0.5
 
@@ -642,17 +643,17 @@ class FEMM_Geometry(om.ExplicitComponent):
             #    femm.mi_selectlabel(layer_2*np.cos(theta_b_s*0.25),layer_2*np.sin(theta_b_s*0.25))
             #    femm.mi_copyrotate(0,0,(theta_p_r-theta_b_t*0.5)*180/np.pi,1)
 
-            femm.mi_addblocklabel(
-                yoke_radius * 0.5 * np.cos(theta_p_r * 0.5), yoke_radius * 0.5 * np.sin(theta_p_r * 0.5)
-            )
-            femm.mi_selectlabel(
-                yoke_radius * 0.5 * np.cos(theta_p_r * 0.5), yoke_radius * 0.5 * np.sin(theta_p_r * 0.5)
-            )
-            femm.mi_setblockprop("Air", 1, 1, "incircuit", 0, 7, 0)
-            femm.mi_clearselected()
+#            femm.mi_addblocklabel(
+#                yoke_radius * 0.5 * np.cos(theta_p_r * 0.5), yoke_radius * 0.5 * np.sin(theta_p_r * 0.5)
+#            )
+#            femm.mi_selectlabel(
+#                yoke_radius * 0.5 * np.cos(theta_p_r * 0.5), yoke_radius * 0.5 * np.sin(theta_p_r * 0.5)
+#            )
+#            femm.mi_setblockprop("Air", 1, 1, "incircuit", 0, 7, 0)
+#            femm.mi_clearselected()
 
-            femm.mi_addblocklabel(r_o * 0.75 * np.cos(theta_p_r * 0.5), r_o * 0.75 * np.sin(theta_p_r * 0.5))
-            femm.mi_selectlabel(r_o * 0.75 * np.cos(theta_p_r * 0.5), r_o * 0.75 * np.sin(theta_p_r * 0.5))
+            femm.mi_addblocklabel(D_sc *0.5* np.cos(theta_p_r * 0.5), D_sc  *0.5* np.sin(theta_p_r * 0.5))
+            femm.mi_selectlabel(D_sc  *0.5* np.cos(theta_p_r * 0.5), D_sc  * 0.5*np.sin(theta_p_r * 0.5))
             femm.mi_setblockprop("Air", 1, 1, "incircuit", 0, 7, 0)
             femm.mi_clearselected()
 
@@ -706,7 +707,9 @@ class FEMM_Geometry(om.ExplicitComponent):
             femm.mi_saveas("coil_design_new.fem")
 
             # Analyze geometry with pyfemm
+            #femm.mi_analyze()
             try:
+                
                 femm.mi_analyze()
 
                 # Load and post-process results
@@ -723,10 +726,12 @@ class FEMM_Geometry(om.ExplicitComponent):
                 c = 1859.9
                 B_o = (-b - np.sqrt(b ** 2.0 - 4.0 * a * c)) / 2.0 / a
                 # I_c = B_o * Load_line_slope #UNUSED
-
                 # Populate openmdao outputs
                 # Max current from manufacturer of superconducting coils, quadratic fit
-                outputs["margin_I_c"] = 3.5357 * B_coil_max ** 2.0 - 144.79 * B_coil_max + 1116.0
+                #outputs["margin_I_c"] = 3.5357 * B_coil_max ** 2.0 - 144.79 * B_coil_max + 1116.0
+
+                outputs["margin_I_c"] = 3.5357 * B_o ** 2.0 - 144.79 * B_o + 1116.0
+
                 outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
                 # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
                 outputs["Coil_max_ratio"] = B_coil_max / B_o

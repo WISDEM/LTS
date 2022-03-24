@@ -460,3 +460,32 @@ class Results(om.ExplicitComponent):
         outputs["gen_eff"] = 1 - P_Losses / P_rated
         outputs["torque_ratio"] = T_actual / T_rated
         outputs["E_p_ratio"] = E_p / E_p_target
+
+
+class LTS_Cost(om.ExplicitComponent):
+    
+    def setup(self):
+        self.add_input('C_Cu',0.0, units='USD/kg', desc='Specific cost of copper')
+        self.add_input('C_Fe',0.0, units='USD/kg', desc='Specific cost of magnetic steel/iron')
+        self.add_input('C_Fes',0.0, units='USD/kg', desc='Specific cost of structural steel')
+        self.add_input('C_NbTi',0.0, units='USD/kg' , desc='Specific cost of Magnet')
+        
+        # Mass of each material type
+        self.add_input('Copper',0.0, units ='kg',desc='Copper mass')
+        self.add_input('Iron',0.0, units = 'kg', desc='Iron mass')
+        self.add_input('Total_mass_SC', 0.0, units ='kg',desc='Magnet mass')
+        self.add_input('mass_total',0.0, units='kg', desc='Structural mass')
+        
+        # Outputs
+        self.add_output('Costs',0.0,units ='USD', desc='Total cost')
+        self.declare_partials("*", "*", method="fd")
+
+    def compute(self, inputs, outputs):
+        # Material cost as a function of material mass and specific cost of material
+
+        K_gen=inputs['Copper']*inputs['C_Cu']+inputs['Iron']*inputs['C_Fe']+inputs['C_NbTi']*inputs['Total_mass_SC']
+
+        Cost_str=inputs['C_Fes']*inputs['mass_total']
+
+        outputs['Costs']=K_gen +Cost_str
+

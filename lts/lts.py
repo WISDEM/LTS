@@ -51,6 +51,12 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("rho_Copper", 0.0, units="kg/(m**3)", desc="Copper density")
         ivcs.add_output("rho_NbTi", 0.0, units="kg/(m**3)", desc="SC conductor mass density ")
         ivcs.add_output("rho_Cu", 0.0, units="ohm*m", desc="Copper resistivity ")
+        ivcs.add_output('C_Cu',0.0, units='USD/kg', desc='Specific cost of copper')
+        ivcs.add_output('C_Fe',0.0, units='USD/kg', desc='Specific cost of magnetic steel/iron')
+        ivcs.add_output('C_Fes',0.0, units='USD/kg', desc='Specific cost of structural steel')
+        ivcs.add_output('C_NbTi',0.0, units='USD/kg' , desc='Specific cost of Magnet')
+
+        
         ivcs.add_output("U_b", 0.0, units="V", desc="brush voltage ")
         # ivcs.add_output("r_strand", 0.0, units="mm", desc="radius of the SC wire strand")
         # ivcs.add_output("k_pf_sc", 0.0, units="mm", desc="packing factor for SC wires")
@@ -61,5 +67,5 @@ class LTS_Outer_Rotor_Opt(om.Group):
         self.add_subsystem("geom", FEMM_Geometry(modeling_options=modeling_options), promotes=["*"])
         self.add_subsystem("results", md.Results(), promotes=["*"])
         self.add_subsystem("struct", LTS_Outer_Rotor_Structural(), promotes=["*"])
-
+        self.add_subsystem("cost", md.LTS_Cost(), promotes=["*"])
         self.connect("Torque_actual", "T_e")

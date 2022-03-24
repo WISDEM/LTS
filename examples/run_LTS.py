@@ -27,7 +27,7 @@ if __name__ == "__main__":
     prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
-    prob.driver.options['optimizer'] = 'SLSQP' #'COBYLA' #
+    prob.driver.options['optimizer'] = 'COBYLA' #'COBYLA' #
     prob.driver.options["maxiter"] = 50 #500 #
     # prob.driver.opt_settings['IPRINT'] = 4
     # prob.driver.opt_settings['ITRM'] = 3
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     prob.model.add_design_var("p", lower=10, upper=30, ref=20)
     prob.model.add_design_var("h_yr", lower=0.01, upper=0.4, ref=0.1)
-    prob.model.add_design_var("l_s", lower=1, upper=2.5, ref=1.625)
+    prob.model.add_design_var("l_s", lower=1, upper=1.5, ref=1.625)
     prob.model.add_design_var("alpha", lower=0.5, upper=20, ref=10)
     prob.model.add_design_var("dalpha", lower=1, upper=10, ref=10)
     prob.model.add_design_var("I_sc", lower=200, upper=700, ref=450)
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
     prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
     #prob.model.add_objective("mass_total", ref=1e6)
-    prob.model.add_objective("l_sc", ref=1e3)
+    prob.model.add_objective("Costs", ref=1e3)
 
     # prob.model.add_constraint('K_rad',    lower=0.15,upper=0.3)						#10
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
@@ -72,6 +72,8 @@ if __name__ == "__main__":
     #prob.model.add_constraint("con_angle2", lower=0.001)
     prob.model.add_constraint("E_p_ratio", lower=0.95, upper=1.05)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
+    
+    prob.model.add_constraint("B_coil_max", lower=5.0)
 
     prob.model.add_constraint("B_rymax", upper=2.1)
 
@@ -90,36 +92,12 @@ if __name__ == "__main__":
     prob.setup()
     # --- Design Variables ---
 
-    # UNUSED
-    # Assign values to universal constants
-    #prob["B_r"] = 1.279  # Tesla remnant flux density
-    #prob["E"] = 2e11  # N/m^2 young's modulus
-    #prob["ratio"] = 0.8  # ratio of magnet width to pole pitch(bm/self.tau_p)
-    #prob["mu_0"] = np.pi * 4e-7  # permeability of free space
-
-    #prob["mu_r"] = 1.06  # relative permeability
-    #prob["cofi"] = 0.85  # power factor
-
-    # Assign values to design constants
-    #prob["h_0"] = 0.005  # Slot opening height
-    #prob["h_1"] = 0.004  # Slot wedge height
-    #prob["k_sfil"] = 0.65  # Slot fill factor
-    #prob["P_Fe0h"] = 4  # specific hysteresis losses W/kg @ 1.5 T
-    #prob["P_Fe0e"] = 1  # specific hysteresis losses W/kg @ 1.5 T
-    #prob["k_fes"] = 0.8  # Iron fill factor
-
-    # Assign values to universal constants
-    #prob["gravity"] = 9.8106  # m/s**2 acceleration due to gravity
-    #prob["E"] = 2e11  # Young's modulus
-    #prob["phi"] = 90 * 2 * np.pi / 360  # tilt angle (rotor tilt -90 degrees during transportation)
-    #prob["v"] = 0.3  # Poisson's ratio
-    #prob["G"] = 79.3e9
     prob["m"] = 6  # phases
-    prob["q"] = 2  # slots per pole
+    prob["q"] = 2  # slots per pole per phase
     prob["b_s_tau_s"] = 0.45
     prob["conductor_area"] = 1.8 * 1.2e-6
-    prob["K_h"] = 2.0
-    prob["K_e"] = 0.5
+    prob["K_h"] = 2.0  #specific hysteresis losses W/kg @ 1.5 T
+    prob["K_e"] = 0.5  # specific hysteresis losses W/kg @ 1.5 T
 
     # Initial design variables for a PMSG designed for a 15MW turbine
     prob["P_rated"] = 17e6
@@ -135,11 +113,17 @@ if __name__ == "__main__":
     prob["alpha"] = 1.45574694
     prob["dalpha"] = 1.13394447
     prob["I_sc"] = 479.19800754
-    prob["N_sc"] = 1472.97322902
-    prob["N_c"] = 5.51261838
+    prob["N_sc"] = 1800   #1472.97322902 #2000 #1472.97322902
+    prob["N_c"] = 2.0 #5.51261838  
     prob["I_s"] = 2979.3387257
     prob["J_s"] = 3.0
     prob["l_s"] = 1.0
+    
+    #Specific costs
+    prob['C_Cu']        =   10.3    #  https://markets.businessinsider.com/commodities/copper-price
+    prob['C_Fe']    	=   0.556
+    prob['C_Fes']       =   0.50139
+    prob['C_NbTi']        =   30
 
     # Material properties
     prob["rho_steel"] = 7850
@@ -167,8 +151,8 @@ if __name__ == "__main__":
 
     #prob.model.approx_totals(method="fd")
 
-    #prob.run_model()
-    prob.run_driver()
+    prob.run_model()
+    #prob.run_driver()
 
     # Clean run directory after the run
     if cleanup_flag:
@@ -233,6 +217,7 @@ if __name__ == "__main__":
             "Rotor structural mass",
             "Stator structural mass",
             "Total structural mass",
+            "Total_gen_cost",
         ],
         "Values": [
             prob.get_val("P_rated", units="MW"),
@@ -290,6 +275,7 @@ if __name__ == "__main__":
             prob.get_val("Structural_mass_rotor", units="t"),
             prob.get_val("Structural_mass_stator", units="t"),
             prob.get_val("mass_total", units="t"),
+            prob.get_val("Costs", units="$"),
         ],
         "Limit": [
             "",
@@ -344,6 +330,7 @@ if __name__ == "__main__":
             prob.get_val("y_allowable_r", units="mm"),
             prob.get_val("u_allowable_s", units="mm"),
             prob.get_val("y_allowable_s", units="mm"),
+            "",
             "",
             "",
             "",
@@ -404,6 +391,7 @@ if __name__ == "__main__":
             "tons",
             "tons",
             "tons",
+            "$",
         ],
     }
     #print(raw_data)
