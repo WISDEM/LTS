@@ -123,7 +123,7 @@ if __name__ == "__main__":
     prob['C_Cu']        =   10.3    #  https://markets.businessinsider.com/commodities/copper-price
     prob['C_Fe']    	=   0.556
     prob['C_Fes']       =   0.50139
-    prob['C_NbTi']        =   30
+    prob['C_NbTi']        =   30.0
 
     # Material properties
     prob["rho_steel"] = 7850
@@ -274,7 +274,7 @@ if __name__ == "__main__":
             prob.get_val("y_as", units="mm"),
             prob.get_val("Structural_mass_rotor", units="t"),
             prob.get_val("Structural_mass_stator", units="t"),
-            prob.get_val("mass_total", units="t"),
+            prob.get_val("structural_mass", units="t"),
             prob.get_val("Costs", units="$"),
         ],
         "Limit": [

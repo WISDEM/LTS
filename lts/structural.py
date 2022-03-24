@@ -328,7 +328,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
 
         self.add_input("Structural_mass_rotor", 0.0, units="kg", desc="rotor disc mass")
         self.add_output("Structural_mass_stator", 0.0, units="kg", desc="Stator mass (kg)")
-        self.add_output("mass_total", 0.0, units="kg", desc="stator disc mass")
+        self.add_output("structural_mass", 0.0, units="kg", desc="stator disc mass")
 
         # self.add_input("K_rad", desc="Aspect ratio")
 
@@ -485,7 +485,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
 
         outputs["U_stator_axial_constraint"] = outputs["y_allowable_s"] - outputs["y_as"]
 
-        outputs["mass_total"] = outputs["Structural_mass_stator"] + Structural_mass_rotor
+        outputs["structural_mass"] = outputs["Structural_mass_stator"] + Structural_mass_rotor
 
 
 class LTS_Outer_Rotor_Structural(om.Group):

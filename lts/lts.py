@@ -4,6 +4,34 @@ from lts.femm_fea import FEMM_Geometry
 from lts.structural import LTS_Outer_Rotor_Structural
 
 
+class LTS_Cost(om.ExplicitComponent):
+    
+    def setup(self):
+        self.add_input('C_Cu',0.0, units='USD/kg', desc='Specific cost of copper')
+        self.add_input('C_Fe',0.0, units='USD/kg', desc='Specific cost of magnetic steel/iron')
+        self.add_input('C_Fes',0.0, units='USD/kg', desc='Specific cost of structural steel')
+        self.add_input('C_NbTi',0.0, units='USD/kg' , desc='Specific cost of Magnet')
+        
+        # Mass of each material type
+        self.add_input('Copper',0.0, units ='kg',desc='Copper mass')
+        self.add_input('Iron',0.0, units = 'kg', desc='Iron mass')
+        self.add_input('Total_mass_SC', 0.0, units ='kg',desc='Magnet mass')
+        self.add_input('structural_mass',0.0, units='kg', desc='Structural mass')
+        
+        # Outputs
+        self.add_output('Costs',0.0,units ='USD', desc='Total cost')
+        self.declare_partials("*", "*", method="fd")
+
+    def compute(self, inputs, outputs):
+        # Material cost as a function of material mass and specific cost of material
+
+        K_gen=inputs['Copper']*inputs['C_Cu']+inputs['Iron']*inputs['C_Fe']+inputs['C_NbTi']*inputs['Total_mass_SC']
+
+        Cost_str=inputs['C_Fes']*inputs['mass_total']
+
+        outputs['Costs']=K_gen +Cost_str
+
+
 class LTS_Outer_Rotor_Opt(om.Group):
     def initialize(self):
         self.options.declare("modeling_options")
@@ -67,5 +95,5 @@ class LTS_Outer_Rotor_Opt(om.Group):
         self.add_subsystem("geom", FEMM_Geometry(modeling_options=modeling_options), promotes=["*"])
         self.add_subsystem("results", md.Results(), promotes=["*"])
         self.add_subsystem("struct", LTS_Outer_Rotor_Structural(), promotes=["*"])
-        self.add_subsystem("cost", md.LTS_Cost(), promotes=["*"])
+        self.add_subsystem("cost", LTS_Cost(), promotes=["*"])
         self.connect("Torque_actual", "T_e")
