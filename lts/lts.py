@@ -27,7 +27,7 @@ class LTS_Cost(om.ExplicitComponent):
 
         K_gen=inputs['Copper']*inputs['C_Cu']+inputs['Iron']*inputs['C_Fe']+inputs['C_NbTi']*inputs['Total_mass_SC']
 
-        Cost_str=inputs['C_Fes']*inputs['mass_total']
+        Cost_str=inputs['C_Fes']*inputs['structural_mass']
 
         outputs['Costs']=K_gen +Cost_str
 

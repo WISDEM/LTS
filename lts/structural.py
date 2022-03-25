@@ -552,7 +552,7 @@ if __name__ == "__main__":
     prob.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
     prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
     prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
-    prob.model.add_objective("mass_total")
+    prob.model.add_objective("structural_mass")
 
     prob.model.add_constraint("U_rotor_radial_constraint", lower=0.01)
     prob.model.add_constraint("U_rotor_axial_constraint", lower=0.01)

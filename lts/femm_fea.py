@@ -546,7 +546,7 @@ class FEMM_Geometry(om.ExplicitComponent):
                 yoke_radius * np.cos(0), yoke_radius * np.sin(0), slot_radius * np.cos(0), slot_radius * np.sin(0)
             )
             femm.mi_addsegment(D_a * 0.5 * np.cos(0), D_a * 0.5 * np.sin(0), r_o * np.cos(0), r_o * np.sin(0))
-            femm.mi_addsegment(0, 0, yoke_radius * np.cos(0), yoke_radius * np.sin(0))
+
             femm.mi_selectarcsegment(yoke_radius * np.cos(0), yoke_radius * np.sin(0))
             femm.mi_setarcsegmentprop(5, "Dirichlet", 0, 5)
 
@@ -739,4 +739,5 @@ class FEMM_Geometry(om.ExplicitComponent):
                 D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p
                 )
             except:
+                
                 outputs = bad_inputs(outputs)
