@@ -9,6 +9,39 @@ def cleanup_femm_files(clean_dir):
         if file.endswith(".ans") or file.endswith(".fem") or file.endswith(".csv"):
             os.remove(os.path.join(clean_dir, file))
 
+
+def save_data(fname, prob):
+    # Remove file extension
+    froot = os.path.splitext(fname)[0]
+
+    # Get all OpenMDAO inputs and outputs into a dictionary
+    var_dict = prob.model.list_inputs(prom_name=True, units=True, desc=True, out_stream=None)
+    out_dict = prob.model.list_outputs(prom_name=True, units=True, desc=True, out_stream=None)
+    var_dict.extend(out_dict)
+
+    data = {}
+    data["variables"] = []
+    data["units"] = []
+    data["values"] = []
+    data["description"] = []
+    for k in range(len(var_dict)):
+        unit_str = var_dict[k][1]["units"]
+        if unit_str is None:
+            unit_str = ""
+
+        iname = var_dict[k][1]["prom_name"]
+        if iname in data["variables"]:
+            continue
+
+        data["variables"].append(iname)
+        data["units"].append(unit_str)
+        data["values"].append(var_dict[k][1]["val"])
+        data["description"].append(var_dict[k][1]["desc"])
+    df = pd.DataFrame(data)
+    df.to_excel(froot + ".xlsx", index=False)
+    df.to_csv(froot + ".csv", index=False)
+
+            
 if __name__ == "__main__":
 
     mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
@@ -27,15 +60,8 @@ if __name__ == "__main__":
     prob.model = LTS_Outer_Rotor_Opt(modeling_options = modeling_options)
 
     prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
-    prob.driver.options['optimizer'] = 'COBYLA' #'COBYLA' #
-    prob.driver.options["maxiter"] = 100 #500 #
-    #prob.driver.options['MAXFUN'] = 1500
-    # prob.driver.opt_settings['ITRM'] = 3
-    # prob.driver.opt_settings['ITMAX'] = 10
-    # prob.driver.opt_settings['DELFUN'] = 1e-3
-    # prob.driver.opt_settings['DABFUN'] = 1e-3
-    # prob.driver.opt_settings['IFILE'] = 'CONMIN_LST.out'
-    # prob.root.deriv_options['type']='fd'
+    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
+    prob.driver.options["maxiter"] = 500 #50
 
     recorder = om.SqliteRecorder(os.path.join(output_dir,"log.sql"))
     prob.driver.add_recorder(recorder)
@@ -67,7 +93,7 @@ if __name__ == "__main__":
     prob.model.add_objective("Costs", ref=1e6)
 
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
-    prob.model.add_constraint("con_angle", lower=0.001)
+    prob.model.add_constraint("con_angle", lower=0.01)
     #prob.model.add_constraint("con_angle2", lower=0.001)
     prob.model.add_constraint("E_p_ratio", lower=0.95, upper=1.05)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
@@ -157,6 +183,10 @@ if __name__ == "__main__":
     if cleanup_flag:
         cleanup_femm_files(mydir)
 
+    # Save everything to csv & excel
+    save_data(os.path.join(output_dir,'LTS_output'), prob)
+
+    # Dump outputs to screen
     prob.model.list_outputs(values = True, hierarchical=True)
 
     raw_data = {
