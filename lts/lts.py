@@ -20,6 +20,7 @@ class LTS_Cost(om.ExplicitComponent):
         
         # Outputs
         self.add_output('Costs',0.0,units ='USD', desc='Total cost')
+        self.add_output('Total_Generator_Mass',0.0,units ='kg', desc='Total generator mass (copper, iron, SC, structural)')
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
@@ -30,6 +31,7 @@ class LTS_Cost(om.ExplicitComponent):
         Cost_str=inputs['C_Fes']*inputs['structural_mass']
 
         outputs['Costs']=K_gen +Cost_str
+        outputs['Total_Generator_Mass'] = inputs['Copper'] + inputs['Iron'] + inputs['Total_mass_SC'] + inputs['structural_mass']
 
 
 class LTS_Outer_Rotor_Opt(om.Group):

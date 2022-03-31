@@ -2,6 +2,7 @@ import openmdao.api as om
 from lts.lts import LTS_Outer_Rotor_Opt
 import os
 import pandas as pd
+import numpy as np
 
 def cleanup_femm_files(clean_dir):
     files = os.listdir(clean_dir)
@@ -45,7 +46,7 @@ def save_data(fname, prob):
 if __name__ == "__main__":
 
     mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
-    output_dir = os.path.join(mydir, 'outputs', 'test1')
+    output_dir = os.path.join(mydir, 'outputs', 'test6')
     os.makedirs(output_dir, exist_ok=True)
 
     modeling_options = {}
@@ -73,13 +74,13 @@ if __name__ == "__main__":
 
     prob.model.add_design_var("D_a", lower=6, upper=9, ref=7.5)
     prob.model.add_design_var("delta_em", lower=0.060, upper=0.10, ref=0.08)
-    prob.model.add_design_var("h_sc", lower=0.03, upper=0.1, ref=0.06)
+    prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     prob.model.add_design_var("p", lower=10, upper=30, ref=20)
     prob.model.add_design_var("h_yr", lower=0.01, upper=0.4, ref=0.1)
-    prob.model.add_design_var("l_s", lower=1, upper=1.5, ref=1.625)
-    prob.model.add_design_var("alpha", lower=0.5, upper=2, ref=10)
-    prob.model.add_design_var("dalpha", lower=1, upper=10, ref=10)
+    prob.model.add_design_var("l_s", lower=1, upper=1.5)
+    prob.model.add_design_var("alpha", lower=0.1, upper=1)
+    prob.model.add_design_var("dalpha", lower=1, upper=5)
     prob.model.add_design_var("I_sc", lower=200, upper=700, ref=450)
     prob.model.add_design_var("N_sc", lower=1500, upper=3000, ref=1500)
     prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
@@ -87,8 +88,8 @@ if __name__ == "__main__":
     #prob.model.add_design_var("J_s", lower=1.5, upper=6, ref=3.75)
     prob.model.add_design_var("h_yr_s", lower=0.0250, upper=0.5, ref=0.3)
     prob.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
-    prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
-    prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
+    # prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
+    # prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
     #prob.model.add_objective("mass_total", ref=1e6)
     prob.model.add_objective("Costs", ref=1e6)
 
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     
     prob.model.add_constraint("B_coil_max", lower=5.0)
 
-    prob.model.add_constraint("B_rymax", upper=2.1)
+    # prob.model.add_constraint("B_rymax", upper=2.1)
 
     prob.model.add_constraint("gen_eff", lower=0.97)
     prob.model.add_constraint("torque_ratio", lower=1.0)
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     prob["delta_em"] = 0.05936839
     prob["h_s"] = 0.18680325
     prob["p"] = 24.84259839
-    prob["h_sc"] = 0.07069314
+    prob["h_sc"] = 0.1
     prob["h_yr"] = 0.15353083
     prob["alpha"] = 0.5 #1.45574694
     prob["dalpha"] = 1.13394447
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     prob["N_c"] = 2.0 #5.51261838  
     prob["I_s"] = 2979.3387257
     prob["J_s"] = 3.0
-    prob["l_s"] = 1.0
+    prob["l_s"] = 1.25
     
     #Specific costs
     prob['C_Cu']        =   10.3    #  https://markets.businessinsider.com/commodities/copper-price

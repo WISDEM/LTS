@@ -447,7 +447,7 @@ class Results(om.ExplicitComponent):
 
         # Calculating  voltage per phase
         om_m = 2 * np.pi * N_nom / 60
-        outputs["E_p"] = E_p = l_s * (D_sc * 0.5 * k_w1 * B_g * om_m * N_s)
+        outputs["E_p"] = E_p = l_s * (D_sc * 0.5 * k_w1 * B_g * om_m * N_s) * np.sqrt(3./2.) * 1.104
 
         # print ("Voltage and lengths are:",outputs["E_p,l_s )
 

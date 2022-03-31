@@ -12,9 +12,9 @@ def bad_inputs(outputs):
     outputs["B_g"] = 7
     outputs["B_coil_max"] = 12
     outputs["B_rymax"] = 5
-    outputs["Torque_actual"] = 1.0 #50e6
-    outputs["Sigma_shear"] = 1.0 #300000
-    outputs["Sigma_normal"] = 1.0 #200000
+    outputs["Torque_actual"] = 1.0e6 #50e6
+    outputs["Sigma_shear"] = 1.0e3 #300000
+    outputs["Sigma_normal"] = 1.0e3 #200000
     return outputs
 
 def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n):
@@ -189,7 +189,7 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
 
     force = np.array([np.trapz(B_r_1[:, 1] * B_t_1[:, 1], B_r_1[:, 0]), np.trapz(B_r_2[:, 1] * B_t_2[:, 1], B_r_2[:, 0])])
     sigma_t = abs(1 / (4 * np.pi * 1e-7) * force) / circ
-    torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s
+    torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s * 1.0844
     #print(force[-1], sigma_t[-1], sigma_t[-1]*circ, torque[-1])
     #print(temp_force, np.linalg.norm(temp_force))
     #print(temp_torque)
