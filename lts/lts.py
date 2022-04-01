@@ -74,8 +74,8 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("b_s_tau_s", 0.45, desc="??")
         ivcs.add_output("conductor_area", 1.8 * 1.2e-6, desc="??")
         ivcs.add_output("Y", 0.0, desc="coil pitch")
-        ivcs.add_output("K_h", 2.0, desc="??")
-        ivcs.add_output("K_e", 0.5, desc="??")
+        ivcs.add_output("K_h", 2.0, units='W/kg', desc="specific hysteresis  loss at 1.5 Tesla")
+        ivcs.add_output("K_e", 0.5, units='W/kg',desc="specific eddy current  loss at 1.5 Tesla")
 
         ivcs.add_output("rho_Fe", 0.0, units="kg/(m**3)", desc="Electrical Steel density ")
         ivcs.add_output("rho_Copper", 0.0, units="kg/(m**3)", desc="Copper density")
