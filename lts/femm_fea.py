@@ -500,7 +500,7 @@ class FEMM_Geometry(om.ExplicitComponent):
 
             # femm.mi_addsegment(slot_radius*np.cos(theta_p_r),slot_radius*np.sin(theta_p_r),D_a/2*np.cos(theta_p_r),D_a/2*np.sin(theta_p_r))
 
-            r_o = (radius_sc + h_sc) * 1.05
+            r_o = (radius_sc + h_sc) * 2.0
 
             # femm.mi_addsegment(D_a/2*np.cos(0),D_a/2*np.sin(0),radius_sc*np.cos(0),radius_sc*np.sin(0))
 

@@ -99,7 +99,7 @@ if __name__ == "__main__":
     prob.model.add_constraint("E_p_ratio", lower=0.95, upper=1.05)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
     
-    prob.model.add_constraint("B_coil_max", lower=5.0)
+    #prob.model.add_constraint("B_coil_max", lower=5.0)
 
     # prob.model.add_constraint("B_rymax", upper=2.1)
 
@@ -122,8 +122,8 @@ if __name__ == "__main__":
     prob["q"] = 2  # slots per pole per phase
     prob["b_s_tau_s"] = 0.45
     prob["conductor_area"] = 1.8 * 1.2e-6
-    prob["K_h"] = 2.0  #specific hysteresis losses W/kg @ 1.5 T
-    prob["K_e"] = 0.5  # specific hysteresis losses W/kg @ 1.5 T
+    prob["K_h"] =2  #specific hysteresis losses W/kg @ 1.5 T
+    prob["K_e"] =0.5  #specific eddy current losses W/kg @ 1.5 T
 
     # Initial design variables for a PMSG designed for a 15MW turbine
     prob["P_rated"] = 17e6
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     prob["h_s"] = 0.18680325
     prob["p"] = 24.84259839
     prob["h_sc"] = 0.1
-    prob["h_yr"] = 0.15353083
+    prob["h_yr"] = 0.1#   0.15353083
     prob["alpha"] = 0.5 #1.45574694
     prob["dalpha"] = 1.13394447
     prob["I_sc"] = 500 #479.19800754
@@ -156,8 +156,8 @@ if __name__ == "__main__":
     prob["rho_Fe"] = 7700.0  # Steel density
     prob["rho_Copper"] = 8900.0  # Kg/m3 copper density
     prob["rho_NbTi"] = 8442.37093661195  # magnet density
-    prob["rho_Cu"] = 1.8e-8 * 1.4  # Copper resisitivty
-    prob["U_b"] = 2     # brush contact voltage
+    prob["rho_Cu"] = 1.724e-8 #1.8e-8 * 1.4  # Copper resisitivty
+    prob["U_b"] = 1.0     # brush voltage drop
     prob["Y"] = 10                 #Short pitch
 
     prob["Tilt_angle"] = 6.0
@@ -177,8 +177,8 @@ if __name__ == "__main__":
 
     #prob.model.approx_totals(method="fd")
 
-    #prob.run_model()
-    prob.run_driver()
+    prob.run_model()
+    #prob.run_driver()
 
     # Clean run directory after the run
     if cleanup_flag:

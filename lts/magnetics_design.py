@@ -224,7 +224,7 @@ class LTS_active(om.ExplicitComponent):
         # k_fill = A_slot / (2 * N_c * A_Cuscalc) # UNUSED
         outputs["N_s"] = N_s = N_c * z / (m)  # turns per phase int(N_c)
 
-        outputs["R_s"] = R_s = rho_Cu * (1 + 20 * 0.00393) * l_Cus * N_s * J_s * 1e6 / (2 * I_s)
+        outputs["R_s"] = R_s = rho_Cu * (1 + 20 * 0.00393) * l_Cus * N_s * J_s * 1e6 / (I_s)
         # print ("Resitance per phase:" ,R_s)
         # r_strand                =0.425e-3
         theta_p_r = tau_p / (R_sc + h_sc)
@@ -376,7 +376,7 @@ class LTS_active(om.ExplicitComponent):
         outputs["A_1"] = (2 * I_s * N_s * m) / (np.pi * (D_a))
         outputs["Cu_losses"] = m * (I_s * 0.707) ** 2 * R_s
         outputs["P_add"] = 0.01 * P_rated
-        outputs["P_brushes"] = 2 * U_b * I_s
+        outputs["P_brushes"] = m * U_b * (I_s*0.707)
 
         # print (N_sc,I_s, p1, D_a,delta_em, N_c,S)
 
@@ -385,13 +385,12 @@ class LTS_active(om.ExplicitComponent):
 
 class Results(om.ExplicitComponent):
     def setup(self):
-        self.add_input("K_h", 2.0, desc="??")
-        self.add_input("K_e", 0.5, desc="??")
-
+        self.add_input("K_h", 0.0, units= "W",desc="specific hysteresis  loss/kg at 1.5 Tesla")
+        self.add_input("K_e", 0.0, units= "W",desc="specific eddy current loss/kg at 1.5 Tesla")
         self.add_input("I_sc", 0.0, units="A", desc="SC current ")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_l", 0.0, desc="Number of layers of the SC field coil")
-        self.add_input("D_sc", 0.0, units="m", desc="field coil diameter ")
+        self.add_input("D_a", 0.0, units="m", desc="Armature diameter ")
         self.add_input("k_w1", 0.0, desc="Winding factor- fundamental harmonic")
         self.add_input("B_rymax", 0.0, desc="Peak Rotor yoke flux density")
         self.add_input("B_g", 0.0, desc="Peak air gap flux density ")
@@ -421,11 +420,11 @@ class Results(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         # Unpack inputs
-        K_h = inputs["K_h"]
-        K_e = inputs["K_e"]
+        K_h = float(inputs["K_h"])
+        K_e = float(inputs["K_e"])
         N_sc = float(inputs["N_sc"])
         N_l = float(inputs["N_l"])
-        D_sc = float(inputs["D_sc"])
+        D_a = float(inputs["D_a"])
         k_w1 = float(inputs["k_w1"])
         B_rymax = float(inputs["B_rymax"])
         B_g = float(inputs["B_g"])
@@ -447,15 +446,14 @@ class Results(om.ExplicitComponent):
 
         # Calculating  voltage per phase
         om_m = 2 * np.pi * N_nom / 60
-        outputs["E_p"] = E_p = l_s * (D_sc * 0.5 * k_w1 * B_g * om_m * N_s) * np.sqrt(3./2.) * 1.104
+        outputs["E_p"] = E_p = l_s * (D_a * 0.5 * k_w1 * B_g * om_m * N_s) * np.sqrt(3./2.) * 1.12253
 
         # print ("Voltage and lengths are:",outputs["E_p,l_s )
 
-        om_e = p1 * om_m
-        outputs["P_Fe"] = P_Fe = (
-            2 * (B_rymax / 1.5) ** 2
-            * (K_h * (om_e * 0.5 / np.pi) + K_e * (om_e * 0.5 / 50) ** 2) * Iron
-        )
+        f_e = 2*p1 * N_nom/120
+        outputs["P_Fe"] = P_Fe = (2*K_h*(f_e/60)*(B_rymax / 1.5) ** 2+2*K_e*(f_e/60)**2*(B_rymax / 1.5) ** 2)*inputs["Iron"]
+
+        
         outputs["P_Losses"] = P_Losses = Cu_losses + P_Fe + P_add + P_brushes
         outputs["gen_eff"] = 1 - P_Losses / P_rated
         outputs["torque_ratio"] = T_actual / T_rated
