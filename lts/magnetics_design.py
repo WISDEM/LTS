@@ -385,8 +385,8 @@ class LTS_active(om.ExplicitComponent):
 
 class Results(om.ExplicitComponent):
     def setup(self):
-        self.add_input("K_h", 0.0, units= "W",desc="specific hysteresis  loss/kg at 1.5 Tesla")
-        self.add_input("K_e", 0.0, units= "W",desc="specific eddy current loss/kg at 1.5 Tesla")
+        self.add_input("K_h", 0.0, units= "W/kg",desc="specific hysteresis  loss at 1.5 Tesla")
+        self.add_input("K_e", 0.0, units= "W/kg",desc="specific eddy current loss at 1.5 Tesla")
         self.add_input("I_sc", 0.0, units="A", desc="SC current ")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_l", 0.0, desc="Number of layers of the SC field coil")
