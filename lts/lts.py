@@ -20,7 +20,6 @@ class LTS_Cost(om.ExplicitComponent):
         
         # Outputs
         self.add_output('Costs',0.0,units ='USD', desc='Total cost')
-        self.add_output('Total_Generator_Mass',0.0,units ='kg', desc='Total generator mass (copper, iron, SC, structural)')
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
@@ -31,7 +30,6 @@ class LTS_Cost(om.ExplicitComponent):
         Cost_str=inputs['C_Fes']*inputs['structural_mass']
 
         outputs['Costs']=K_gen +Cost_str
-        outputs['Total_Generator_Mass'] = inputs['Copper'] + inputs['Iron'] + inputs['Total_mass_SC'] + inputs['structural_mass']
 
 
 class LTS_Outer_Rotor_Opt(om.Group):
@@ -74,8 +72,8 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("b_s_tau_s", 0.45, desc="??")
         ivcs.add_output("conductor_area", 1.8 * 1.2e-6, desc="??")
         ivcs.add_output("Y", 0.0, desc="coil pitch")
-        ivcs.add_output("K_h", 2.0, units='W/kg', desc="specific hysteresis  loss at 1.5 Tesla")
-        ivcs.add_output("K_e", 0.5, units='W/kg',desc="specific eddy current  loss at 1.5 Tesla")
+        ivcs.add_output("K_h", 2.0, desc="??")
+        ivcs.add_output("K_e", 0.5, desc="??")
 
         ivcs.add_output("rho_Fe", 0.0, units="kg/(m**3)", desc="Electrical Steel density ")
         ivcs.add_output("rho_Copper", 0.0, units="kg/(m**3)", desc="Copper density")

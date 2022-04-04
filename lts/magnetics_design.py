@@ -352,17 +352,7 @@ class LTS_active(om.ExplicitComponent):
         V_Fery = 0.25 * np.pi * l_s * ((D_a - 2 * h_s) ** 2 - (D_a - 2 * h_s - 2 * h_yr) ** 2)
         # outputs["Copper		 Copper =    =   V_Cus*rho_Copper
         outputs["Iron"] = Iron = V_Fery * rho_Fe  # Mass of stator yoke
-        # k_pf = 0.8 # UNUSED
-        # N_sc  =N_sc = int(N_sc)
-        # outputs["Dia_sc"] =2Dia_sc = *((k_pf*W_sc*h_sc)/N_sc/pi)**0.5
-        # k_pf = N_sc * (1.8e-3 * 1.2e-3) / (W_sc * h_sc) # UNUSED
-        # outputs["SC mass   SC mass =        =
-
-        # Calculating Losses
-        ##1. Copper Losses
-        # outputs["N_s   N_s =     =int(N_s)
-        # outputs["N_s  =N_s = q*p
-        # print (alpha,beta)
+       
 
         outputs["N_l"] = h_sc / (1.2e-3)  # round later!
 
@@ -374,9 +364,10 @@ class LTS_active(om.ExplicitComponent):
 
         outputs["Mass"] = Total_mass_SC + Iron + Copper
         outputs["A_1"] = (2 * I_s * N_s * m) / (np.pi * (D_a))
+
         outputs["Cu_losses"] = m * (I_s * 0.707) ** 2 * R_s
         outputs["P_add"] = 0.01 * P_rated
-        outputs["P_brushes"] = m * U_b * (I_s*0.707)
+        outputs["P_brushes"] = 6 * U_b * I_s*0.707
 
         # print (N_sc,I_s, p1, D_a,delta_em, N_c,S)
 
@@ -385,8 +376,9 @@ class LTS_active(om.ExplicitComponent):
 
 class Results(om.ExplicitComponent):
     def setup(self):
-        self.add_input("K_h", 0.0, units= "W/kg",desc="specific hysteresis  loss at 1.5 Tesla")
-        self.add_input("K_e", 0.0, units= "W/kg",desc="specific eddy current loss at 1.5 Tesla")
+        self.add_input("K_h", 2.0, desc="??")
+        self.add_input("K_e", 0.5, desc="??")
+
         self.add_input("I_sc", 0.0, units="A", desc="SC current ")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_l", 0.0, desc="Number of layers of the SC field coil")
@@ -420,8 +412,8 @@ class Results(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         # Unpack inputs
-        K_h = float(inputs["K_h"])
-        K_e = float(inputs["K_e"])
+        K_h = inputs["K_h"]
+        K_e = inputs["K_e"]
         N_sc = float(inputs["N_sc"])
         N_l = float(inputs["N_l"])
         D_a = float(inputs["D_a"])
@@ -446,7 +438,7 @@ class Results(om.ExplicitComponent):
 
         # Calculating  voltage per phase
         om_m = 2 * np.pi * N_nom / 60
-        outputs["E_p"] = E_p = l_s * (D_a * 0.5 * k_w1 * B_g * om_m * N_s) * np.sqrt(3./2.) * 1.12253
+        outputs["E_p"] = E_p = l_s * (D_a * 0.5 * k_w1 * B_g * om_m * N_s)*3**0.5*(1/2**0.5)*1.12253
 
         # print ("Voltage and lengths are:",outputs["E_p,l_s )
 
@@ -458,4 +450,6 @@ class Results(om.ExplicitComponent):
         outputs["gen_eff"] = 1 - P_Losses / P_rated
         outputs["torque_ratio"] = T_actual / T_rated
         outputs["E_p_ratio"] = E_p / E_p_target
+        
+        print (outputs["gen_eff"],outputs["torque_ratio"],outputs["E_p_ratio"])
 

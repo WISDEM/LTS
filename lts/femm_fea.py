@@ -41,6 +41,7 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     #        femm.mo_addcontour((radius_sc+h_sc)*np.cos(alpha_r),(radius_sc+h_sc)*np.sin(alpha_r))
     #        femm.mo_addcontour((radius_sc+h_sc)*np.cos(beta_r),(radius_sc+h_sc)*np.sin(beta_r))
     #        femm.mo_addcontour((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
+    
 
     femm.mo_selectblock(
         (radius_sc + h_sc * 0.5) * np.cos(alpha_r + (beta_r - alpha_r) * 0.5),
@@ -189,7 +190,7 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
 
     force = np.array([np.trapz(B_r_1[:, 1] * B_t_1[:, 1], B_r_1[:, 0]), np.trapz(B_r_2[:, 1] * B_t_2[:, 1], B_r_2[:, 0])])
     sigma_t = abs(1 / (4 * np.pi * 1e-7) * force) / circ
-    torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s * 1.0844
+    torque = np.pi / 2 * sigma_t * D_a ** 2 * l_s*1.08440860215053764
     #print(force[-1], sigma_t[-1], sigma_t[-1]*circ, torque[-1])
     #print(temp_force, np.linalg.norm(temp_force))
     #print(temp_torque)
@@ -199,6 +200,7 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
 
     # Air gap electro-magnetic torque for the full machine
     # Average shear stress for the full machine
+    #print (torque[0],torque[1])
     return torque.mean(), sigma_t.mean()
 
 
@@ -500,7 +502,8 @@ class FEMM_Geometry(om.ExplicitComponent):
 
             # femm.mi_addsegment(slot_radius*np.cos(theta_p_r),slot_radius*np.sin(theta_p_r),D_a/2*np.cos(theta_p_r),D_a/2*np.sin(theta_p_r))
 
-            r_o = (radius_sc + h_sc) * 2.0
+            r_o = (radius_sc + h_sc) * 2
+            
 
             # femm.mi_addsegment(D_a/2*np.cos(0),D_a/2*np.sin(0),radius_sc*np.cos(0),radius_sc*np.sin(0))
 

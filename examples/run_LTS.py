@@ -2,15 +2,14 @@ import openmdao.api as om
 from lts.lts import LTS_Outer_Rotor_Opt
 import os
 import pandas as pd
-import numpy as np
 
 def cleanup_femm_files(clean_dir):
     files = os.listdir(clean_dir)
     for file in files:
         if file.endswith(".ans") or file.endswith(".fem") or file.endswith(".csv"):
             os.remove(os.path.join(clean_dir, file))
-
-
+            
+            
 def save_data(fname, prob):
     # Remove file extension
     froot = os.path.splitext(fname)[0]
@@ -40,13 +39,12 @@ def save_data(fname, prob):
         data["description"].append(var_dict[k][1]["desc"])
     df = pd.DataFrame(data)
     df.to_excel(froot + ".xlsx", index=False)
-    df.to_csv(froot + ".csv", index=False)
+    df.to_csv(froot + ".csv", index=False)            
 
-            
 if __name__ == "__main__":
 
     mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
-    output_dir = os.path.join(mydir, 'outputs', 'test6')
+    output_dir = os.path.join(mydir, 'outputs', 'test11')
     os.makedirs(output_dir, exist_ok=True)
 
     modeling_options = {}
@@ -72,13 +70,13 @@ if __name__ == "__main__":
     prob.driver.recording_options["record_desvars"] = True
     prob.driver.recording_options["record_objectives"] = True
 
-    prob.model.add_design_var("D_a", lower=6, upper=9, ref=7.5)
+    prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
     prob.model.add_design_var("delta_em", lower=0.060, upper=0.10, ref=0.08)
     prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
-    prob.model.add_design_var("p", lower=10, upper=30, ref=20)
+    prob.model.add_design_var("p", lower=20, upper=30, ref=25)
     prob.model.add_design_var("h_yr", lower=0.01, upper=0.4, ref=0.1)
-    prob.model.add_design_var("l_s", lower=1, upper=1.5)
+    prob.model.add_design_var("l_s", lower=1, upper=1.75)
     prob.model.add_design_var("alpha", lower=0.1, upper=1)
     prob.model.add_design_var("dalpha", lower=1, upper=5)
     prob.model.add_design_var("I_sc", lower=200, upper=700, ref=450)
@@ -88,30 +86,30 @@ if __name__ == "__main__":
     #prob.model.add_design_var("J_s", lower=1.5, upper=6, ref=3.75)
     prob.model.add_design_var("h_yr_s", lower=0.0250, upper=0.5, ref=0.3)
     prob.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
-    # prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
-    # prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
+    prob.model.add_design_var("t_rdisc", lower=0.1, upper=0.5, ref=0.3)
+    prob.model.add_design_var("t_sdisc", lower=0.1, upper=0.5, ref=0.3)
     #prob.model.add_objective("mass_total", ref=1e6)
     prob.model.add_objective("Costs", ref=1e6)
 
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
-    prob.model.add_constraint("con_angle", lower=0.01)
+    prob.model.add_constraint("con_angle", lower=0.001)
     #prob.model.add_constraint("con_angle2", lower=0.001)
-    prob.model.add_constraint("E_p_ratio", lower=0.95, upper=1.05)
+    prob.model.add_constraint("E_p_ratio", lower=0.9, upper=1.10)
     #prob.model.add_constraint("con_N_sc", lower=-5, upper=5)
     
     #prob.model.add_constraint("B_coil_max", lower=5.0)
 
-    # prob.model.add_constraint("B_rymax", upper=2.1)
+    prob.model.add_constraint("B_rymax", upper=2.1)
 
     prob.model.add_constraint("gen_eff", lower=0.97)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Critical_current_ratio",upper=1.)
     #prob.model.add_constraint("Coil_max_ratio",upper=1.) # Consider user-defined limit instead of load line
 
-    # prob.model.add_constraint("U_rotor_radial_constraint", lower=0.01)
-    # prob.model.add_constraint("U_rotor_axial_constraint", lower=0.01)
-    # prob.model.add_constraint("U_stator_radial_constraint", lower=0.01)
-    # prob.model.add_constraint("U_stator_axial_constraint", lower=0.01)
+    prob.model.add_constraint("U_rotor_radial_constraint", lower=0.01)
+    prob.model.add_constraint("U_rotor_axial_constraint", lower=0.01)
+    prob.model.add_constraint("U_stator_radial_constraint", lower=0.01)
+    prob.model.add_constraint("U_stator_axial_constraint", lower=0.01)
 
     prob.model.approx_totals(method="fd")
 
@@ -122,28 +120,84 @@ if __name__ == "__main__":
     prob["q"] = 2  # slots per pole per phase
     prob["b_s_tau_s"] = 0.45
     prob["conductor_area"] = 1.8 * 1.2e-6
-    prob["K_h"] =2  #specific hysteresis losses W/kg @ 1.5 T
-    prob["K_e"] =0.5  #specific eddy current losses W/kg @ 1.5 T
-
+    prob["K_h"] = 2  #specific hysteresis losses W/kg @ 1.5 T
+    prob["K_e"] = 0.5  #specific hysteresis losses W/kg @ 1.5 T
+   
     # Initial design variables for a PMSG designed for a 15MW turbine
+    # prob["P_rated"] = 17e6
+    # prob["T_rated"] = 23.07e6
+    # prob["E_p_target"] = 3300.0
+    # prob["N_nom"] = 7.7
+
+    
+    # prob["l_s"] = 1.00390095  # 8.68                # rpm 9.6
+    # prob["D_a"] = 7.74736313  # rev 1 6.8
+    # prob["delta_em"] = 0.02  # rev 2.1
+    # prob["h_s"] = 0.1803019703  # rev 1 0.3
+    # prob["p"] = 21 # 100.0    # rev 1 160
+    # prob["h_sc"] = 0.0503409354 # rev 1 0.034
+    # prob["h_yr"] = 0.1254730934  # rev 1 0.045
+    # prob["alpha"] = 0.53805442  # rev 1 0.045
+    # prob["dalpha"] = 1.0  # rev 1 0.045
+    # # prob['beta']        =   1.75 # rev 1 0.045
+    # prob["I_sc"] = 400.4427393  # rev 1 0.045
+    # prob["N_sc"] = 1502  # rev 1 0.045
+    # prob["N_c"] = 2
+    # prob["I_s"] = 2995.06090335
+    # prob["J_s"] = 3.0
+    
+    
+    
+    # #Specific costs
+    # prob['C_Cu']        =   10.3    #  https://markets.businessinsider.com/commodities/copper-price
+    # prob['C_Fe']    	=   0.556
+    # prob['C_Fes']       =   0.50139
+    # prob['C_NbTi']        =   30.0
+
+    # #Material properties
+    # prob["rho_steel"] = 7850
+    # prob["rho_Fe"] = 7700.0  # Steel density
+    # prob["rho_Copper"] = 8900.0  # Kg/m3 copper density
+    # prob["rho_NbTi"] = 8442.37093661195  # magnet density
+    # prob["rho_Cu"] = 1.724e-8 #    1.8e-8 * 1.4  # Copper resisitivty
+    # prob["U_b"] = 1    # brush contact voltage
+    # prob["Y"] = 10                 #Short pitch
+
+    # prob["Tilt_angle"] = 90.0
+    # prob["R_shaft_outer"] = 1.25
+    # prob["R_nose_outer"] = 0.95
+    # prob["u_allow_pcent"] = 30
+    # prob["y_allow_pcent"] = 20
+    # prob["h_yr"] = 0.1254730934
+    # prob["h_yr_s"] = 0.025
+    # prob["h_ys"] = 0.1
+    # prob["t_rdisc"] = 0.1
+    # prob["t_sdisc"] = 0.05
+    # prob["y_bd"] = 0.00
+    # prob["theta_bd"] = 0.00
+    # prob["y_sh"] = 0.00
+    # prob["theta_sh"] = 0.00
+    
+    
+    # ## Initial design variables for a PMSG designed for a 15MW turbine
     prob["P_rated"] = 17e6
     prob["T_rated"] = 23.07e6
     prob["E_p_target"] = 3300.0
     prob["N_nom"] = 7.7
-    prob["D_a"] = 6.54607922
-    prob["delta_em"] = 0.05936839
-    prob["h_s"] = 0.18680325
-    prob["p"] = 24.84259839
-    prob["h_sc"] = 0.1
-    prob["h_yr"] = 0.1#   0.15353083
-    prob["alpha"] = 0.5 #1.45574694
-    prob["dalpha"] = 1.13394447
-    prob["I_sc"] = 500 #479.19800754
-    prob["N_sc"] = 1800   #1472.97322902 #2000 #1472.97322902
+    prob["D_a"] = 7.0 #9.01925081 #6.54607922
+    prob["delta_em"] =0.080 # 0.05936839
+    prob["h_s"] = 0.15 # 0.19418517631 #0.18680325
+    prob["p"] = 27.14331088 #24.84259839
+    prob["h_sc"] = 0.1486031353 #0.1
+    prob["h_yr"] = 0.10242253782 #0.15353083
+    prob["alpha"] = 0.15 #0.33676755 #1.45574694
+    prob["dalpha"] = 1.17408429
+    prob["I_sc"] = 359.12473745 #479.19800754
+    prob["N_sc"] = 2230 #1800   #1472.97322902 #2000 #1472.97322902
     prob["N_c"] = 2.0 #5.51261838  
-    prob["I_s"] = 2979.3387257
+    prob["I_s"] = 2264.79928987 #3536.06 #2979.3387257
     prob["J_s"] = 3.0
-    prob["l_s"] = 1.25
+    prob["l_s"] = 1.43286441
     
     #Specific costs
     prob['C_Cu']        =   10.3    #  https://markets.businessinsider.com/commodities/copper-price
@@ -157,19 +211,19 @@ if __name__ == "__main__":
     prob["rho_Copper"] = 8900.0  # Kg/m3 copper density
     prob["rho_NbTi"] = 8442.37093661195  # magnet density
     prob["rho_Cu"] = 1.724e-8 #1.8e-8 * 1.4  # Copper resisitivty
-    prob["U_b"] = 1.0     # brush voltage drop
+    prob["U_b"] =1    # brush voltage drop
     prob["Y"] = 10                 #Short pitch
 
-    prob["Tilt_angle"] = 6.0
+    prob["Tilt_angle"] = 90.0
     prob["R_shaft_outer"] = 1.25
     prob["R_nose_outer"] = 0.95
-    prob["u_allow_pcent"] = 50
+    prob["u_allow_pcent"] = 30
     prob["y_allow_pcent"] = 20
-    #prob["h_yr"] = 0.1254730934
-    prob["h_yr_s"] = 0.025
-    prob["h_ys"] = 0.050
-    prob["t_rdisc"] = 0.05
-    prob["t_sdisc"] = 0.100
+    prob["h_yr"] = 0.075 #0.1254730934
+    prob["h_yr_s"] = 0.03323933616 #0.025
+    prob["h_ys"] = 0.050854653 #0.050
+    prob["t_rdisc"] =0.075 # 0.1
+    prob["t_sdisc"] = 0.075 #0.100
     prob["y_bd"] = 0.00
     prob["theta_bd"] = 0.00
     prob["y_sh"] = 0.00
@@ -177,18 +231,14 @@ if __name__ == "__main__":
 
     #prob.model.approx_totals(method="fd")
 
-    prob.run_model()
-    #prob.run_driver()
+    #prob.run_model()
+    prob.run_driver()
 
     # Clean run directory after the run
     if cleanup_flag:
         cleanup_femm_files(mydir)
 
-    # Save everything to csv & excel
-    save_data(os.path.join(output_dir,'LTS_output'), prob)
-
-    # Dump outputs to screen
-    prob.model.list_outputs(values = True, hierarchical=True)
+    #prob.model.list_outputs(values = True, hierarchical=True)
 
     raw_data = {
         "Parameters": [
@@ -242,8 +292,10 @@ if __name__ == "__main__":
             "Stator yoke thickness",
             "Rotor radial deflection",
             "Rotor axial deflection",
+            "Rotor torsional twist",
             "Stator radial deflection",
             "Stator axial deflection",
+            "Stator torsional twist",
             "Rotor structural mass",
             "Stator structural mass",
             "Total structural mass",
@@ -300,8 +352,10 @@ if __name__ == "__main__":
             prob.get_val("h_ys", units="mm"),
             prob.get_val("u_ar", units="mm"),
             prob.get_val("y_ar", units="mm"),
+            prob.get_val("twist_r"),
             prob.get_val("u_as", units="mm"),
             prob.get_val("y_as", units="mm"),
+            prob.get_val("twist_s"),
             prob.get_val("Structural_mass_rotor", units="t"),
             prob.get_val("Structural_mass_stator", units="t"),
             prob.get_val("structural_mass", units="t"),
@@ -358,8 +412,10 @@ if __name__ == "__main__":
             "",
             prob.get_val("u_allowable_r", units="mm"),
             prob.get_val("y_allowable_r", units="mm"),
+            "",
             prob.get_val("u_allowable_s", units="mm"),
             prob.get_val("y_allowable_s", units="mm"),
+            "",
             "",
             "",
             "",
@@ -416,8 +472,10 @@ if __name__ == "__main__":
             "mm",
             "mm",
             "mm",
+            "deg",
             "mm",
             "mm",
+            "deg",
             "tons",
             "tons",
             "tons",
@@ -427,7 +485,7 @@ if __name__ == "__main__":
     #print(raw_data)
     df = pd.DataFrame(raw_data, columns=["Parameters", "Values", "Limit", "Units"])
 
-    #print(df)
+    print(df)
 
     df.to_excel(os.path.join(output_dir,"Optimized_LTSG_" + str(prob["P_rated"][0] / 1e6) + "_MW.xlsx"))
     print("Final solution:")
