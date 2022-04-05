@@ -57,7 +57,7 @@ class LTS_active(om.ExplicitComponent):
         self.add_input("rho_Fe", 0.0, units="kg/(m**3)", desc="Electrical Steel density ")
         self.add_input("rho_Copper", 0.0, units="kg/(m**3)", desc="Copper density")
         self.add_input("rho_NbTi", 0.0, units="kg/(m**3)", desc="SC conductor mass density ")
-        self.add_input("rho_Cu", 0.0, units="ohm*m", desc="Copper resistivity ")
+        self.add_input("resisitivty_Cu", 0.0, units="ohm*m", desc="Copper resistivity ")
         self.add_input("U_b", 0.0, units="V", desc="brush voltage ")
 
         self.add_input("P_rated", units="W", desc="Machine rating")
@@ -114,7 +114,6 @@ class LTS_active(om.ExplicitComponent):
         # self.add_output("Torque_constraint", 0.0, units="N/(m*m)", desc="Shear stress contraint")
 
         # Objective functions
-        self.add_output("Mass", 0.0, units="kg", desc="Actual mass")
         self.add_output("K_rad", desc="Aspect ratio")
         self.add_output("Cu_losses", units="W", desc="Copper losses")
         self.add_output("P_add", units="W", desc="Additional losses")
@@ -127,10 +126,11 @@ class LTS_active(om.ExplicitComponent):
         self.add_output("y_Q", 0.0, desc="Slots per pole also pole pitch")
 
         # Mass Outputs
-        self.add_output("mass_SC", 0.0, units="kg", desc="SC conductor mass per racetrack")
-        self.add_output("Total_mass_SC", 0.0, units="kg", desc=" Total SC conductor mass")
-        self.add_output("Copper", 0.0, units="kg", desc="Copper Mass")
-        self.add_output("Iron", 0.0, units="kg", desc="Electrical Steel Mass")
+        self.add_output("mass_SC_racetrack", 0.0, units="kg", desc="SC conductor mass per racetrack")
+        self.add_output("mass_SC", 0.0, units="kg", desc=" Total SC conductor mass")
+        self.add_output("mass_copper", 0.0, units="kg", desc="Copper Mass")
+        self.add_output("mass_iron", 0.0, units="kg", desc="Electrical Steel Mass")
+        self.add_output("mass_active", 0.0, units="kg", desc="Actual mass")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -159,7 +159,7 @@ class LTS_active(om.ExplicitComponent):
         rho_Fe = float(inputs["rho_Fe"])
         rho_Copper = float(inputs["rho_Copper"])
         rho_NbTi = float(inputs["rho_NbTi"])
-        rho_Cu = float(inputs["rho_Cu"])
+        resisitivty_Cu = float(inputs["resisitivty_Cu"])
         U_b = float(inputs["U_b"])
         P_rated = float(inputs["P_rated"])
         N_nom = float(inputs["N_nom"])
@@ -224,7 +224,7 @@ class LTS_active(om.ExplicitComponent):
         # k_fill = A_slot / (2 * N_c * A_Cuscalc) # UNUSED
         outputs["N_s"] = N_s = N_c * z / (m)  # turns per phase int(N_c)
 
-        outputs["R_s"] = R_s = rho_Cu * (1 + 20 * 0.00393) * l_Cus * N_s * J_s * 1e6 / (I_s)
+        outputs["R_s"] = R_s = resisitivty_Cu * (1 + 20 * 0.00393) * l_Cus * N_s * J_s * 1e6 / (I_s)
         # print ("Resitance per phase:" ,R_s)
         # r_strand                =0.425e-3
         theta_p_r = tau_p / (R_sc + h_sc)
@@ -351,18 +351,18 @@ class LTS_active(om.ExplicitComponent):
         # volume of iron in stator tooth
         V_Fery = 0.25 * np.pi * l_s * ((D_a - 2 * h_s) ** 2 - (D_a - 2 * h_s - 2 * h_yr) ** 2)
         # outputs["Copper		 Copper =    =   V_Cus*rho_Copper
-        outputs["Iron"] = Iron = V_Fery * rho_Fe  # Mass of stator yoke
-       
+        outputs["mass_iron"] = Iron = V_Fery * rho_Fe  # Mass of stator yoke
+
 
         outputs["N_l"] = h_sc / (1.2e-3)  # round later!
 
         # 0.01147612156295224312590448625181
-        outputs["mass_SC"] = mass_SC = l_sc * conductor_area * rho_NbTi
-        outputs["Total_mass_SC"] = Total_mass_SC = p1 * mass_SC
+        outputs["mass_SC_racetrack"] = mass_SC = l_sc * conductor_area * rho_NbTi
+        outputs["mass_SC"] = Total_mass_SC = p1 * mass_SC
         V_Cus = m * l_Cus * N_s * (A_Cuscalc)
-        outputs["Copper"] = Copper = V_Cus * rho_Copper
+        outputs["mass_copper"] = Copper = V_Cus * rho_Copper
 
-        outputs["Mass"] = Total_mass_SC + Iron + Copper
+        outputs["mass_active"] = Total_mass_SC + Iron + Copper
         outputs["A_1"] = (2 * I_s * N_s * m) / (np.pi * (D_a))
 
         outputs["Cu_losses"] = m * (I_s * 0.707) ** 2 * R_s
@@ -445,11 +445,10 @@ class Results(om.ExplicitComponent):
         f_e = 2*p1 * N_nom/120
         outputs["P_Fe"] = P_Fe = (2*K_h*(f_e/60)*(B_rymax / 1.5) ** 2+2*K_e*(f_e/60)**2*(B_rymax / 1.5) ** 2)*inputs["Iron"]
 
-        
+
         outputs["P_Losses"] = P_Losses = Cu_losses + P_Fe + P_add + P_brushes
         outputs["gen_eff"] = 1 - P_Losses / P_rated
         outputs["torque_ratio"] = T_actual / T_rated
         outputs["E_p_ratio"] = E_p / E_p_target
-        
-        print (outputs["gen_eff"],outputs["torque_ratio"],outputs["E_p_ratio"])
 
+        #print(outputs["gen_eff"],outputs["torque_ratio"],outputs["E_p_ratio"])

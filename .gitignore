@@ -130,3 +130,7 @@ dmypy.json
 *.csv
 *.fem
 *.ans
+
+# Outputs
+*.xlsx
+*.sql
