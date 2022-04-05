@@ -135,7 +135,7 @@ if __name__ == "__main__":
     prob["E_p_target"] = 3300.0
     prob["N_nom"] = 7.7
     prob["D_a"] = 7.86277266
-    prob["delta_em"] =0.096
+    prob["delta_em"] = 0.096
     prob["h_s"] = 0.1
     prob["p"] = 30.0
     prob["h_sc"] = 0.15

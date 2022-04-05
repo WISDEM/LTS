@@ -313,7 +313,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
         self.add_input("g", 9.8106, units="m/s/s", desc="Acceleration due to gravity")
         self.add_input("rho_steel", 0.0, units="kg/m**3", desc="Structural steel mass density")
 
-        self.add_input("Total_mass_SC", 0.0, units="kg", desc=" SC mass")
+        self.add_input("mass_SC", 0.0, units="kg", desc="SC mass")
         self.add_input("Tilt_angle", 0.0, units="deg", desc=" Main shaft tilt angle")
 
         self.add_output("W_sy", 0.0, desc=" line load of stator yoke thickness")
@@ -365,7 +365,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
         v = inputs["v"]
         g = inputs["g"]
         rho_steel = inputs["rho_steel"]
-        Total_mass_SC = inputs["Total_mass_SC"]
+        Total_mass_SC = inputs["mass_SC"]
         Tilt_angle = inputs["Tilt_angle"]
         Sigma_normal = inputs["Sigma_normal"]
         # Sigma_shear = inputs["Sigma_shear"]

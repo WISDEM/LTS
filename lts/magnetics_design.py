@@ -389,7 +389,7 @@ class Results(om.ExplicitComponent):
         self.add_input("N_s", 0.0, desc="Number of turns per phase in series")
         self.add_input("N_nom", 0.0, units="rpm", desc="rated speed")
         self.add_input("p1", 0.0, desc="Pole pairs ")
-        self.add_input("Iron", 0.0, units="kg", desc="Electrical Steel Mass")
+        self.add_input("mass_iron", 0.0, units="kg", desc="Electrical Steel Mass")
         self.add_input("T_rated", 0.0, units="N*m", desc="Rated torque ")
         self.add_input("Torque_actual", 0.0, units="N*m", desc="Shear stress actual")
         self.add_input("P_rated", units="W", desc="Machine rating")
@@ -423,7 +423,7 @@ class Results(om.ExplicitComponent):
         N_s = float(inputs["N_s"])
         N_nom = float(inputs["N_nom"])
         p1 = float(inputs["p1"])
-        Iron = float(inputs["Iron"])
+        Iron = float(inputs["mass_iron"])
         P_rated = float(inputs["P_rated"])
         Cu_losses = float(inputs["Cu_losses"])
         P_add = float(inputs["P_add"])
@@ -443,7 +443,7 @@ class Results(om.ExplicitComponent):
         # print ("Voltage and lengths are:",outputs["E_p,l_s )
 
         f_e = 2*p1 * N_nom/120
-        outputs["P_Fe"] = P_Fe = (2*K_h*(f_e/60)*(B_rymax / 1.5) ** 2+2*K_e*(f_e/60)**2*(B_rymax / 1.5) ** 2)*inputs["Iron"]
+        outputs["P_Fe"] = P_Fe = (2*K_h*(f_e/60)*(B_rymax / 1.5) ** 2+2*K_e*(f_e/60)**2*(B_rymax / 1.5) ** 2)*Iron
 
 
         outputs["P_Losses"] = P_Losses = Cu_losses + P_Fe + P_add + P_brushes
