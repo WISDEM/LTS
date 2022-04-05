@@ -8,3 +8,5 @@ To run the code, follow these steps
 
         pip install pyfemm
         conda install openmdao
+
+The technical support of David Meeker, Ph.D., author of the Femm library is gratefully acknowledged
