@@ -2,6 +2,7 @@ import openmdao.api as om
 import os
 import matplotlib.pyplot as plt
 
+
 class Convergence_Trends_Opt(om.ExplicitComponent):
     """
     Deprecating this for now and using OptView from PyOptSparse instead.
@@ -14,7 +15,7 @@ class Convergence_Trends_Opt(om.ExplicitComponent):
     def compute(self, inputs, outputs):
 
         folder_output = self.options["opt_options"]["general"]["folder_output"]
-        print('Figures saved here: ', folder_output)
+        print("Figures saved here: ", folder_output)
         optimization_log = os.path.join(folder_output, self.options["opt_options"]["recorder"]["file_name"])
 
         if os.path.exists(optimization_log):
@@ -62,6 +63,7 @@ class PlotRecorder(om.Group):
 
     def setup(self):
         self.add_subsystem("conv_plots", Convergence_Trends_Opt(opt_options=self.options["opt_options"]))
+
 
 mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
 output_folder_name = "test5"

@@ -5,36 +5,36 @@ from lts.structural import LTS_Outer_Rotor_Structural
 
 
 class LTS_Cost(om.ExplicitComponent):
-
     def setup(self):
-        self.add_input('C_Cu',0.0, units='USD/kg', desc='Specific cost of copper')
-        self.add_input('C_Fe',0.0, units='USD/kg', desc='Specific cost of magnetic steel/iron')
-        self.add_input('C_Fes',0.0, units='USD/kg', desc='Specific cost of structural steel')
-        self.add_input('C_NbTi',0.0, units='USD/kg' , desc='Specific cost of Magnet')
+        self.add_input("C_Cu", 0.0, units="USD/kg", desc="Specific cost of copper")
+        self.add_input("C_Fe", 0.0, units="USD/kg", desc="Specific cost of magnetic steel/iron")
+        self.add_input("C_Fes", 0.0, units="USD/kg", desc="Specific cost of structural steel")
+        self.add_input("C_NbTi", 0.0, units="USD/kg", desc="Specific cost of Magnet")
 
         # Mass of each material type
-        self.add_input('mass_copper',0.0, units ='kg',desc='Copper mass')
-        self.add_input('mass_iron',0.0, units = 'kg', desc='Iron mass')
-        self.add_input('mass_SC', 0.0, units ='kg',desc='Magnet mass')
-        self.add_input('mass_structural',0.0, units='kg', desc='Structural mass')
+        self.add_input("mass_copper", 0.0, units="kg", desc="Copper mass")
+        self.add_input("mass_iron", 0.0, units="kg", desc="Iron mass")
+        self.add_input("mass_SC", 0.0, units="kg", desc="Magnet mass")
+        self.add_input("mass_structural", 0.0, units="kg", desc="Structural mass")
 
         # Outputs
-        self.add_output('mass_total',0.0, units='kg', desc='Structural mass')
-        self.add_output('cost_total',0.0,units ='USD', desc='Total cost')
+        self.add_output("mass_total", 0.0, units="kg", desc="Structural mass")
+        self.add_output("cost_total", 0.0, units="USD", desc="Total cost")
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
         # Material cost as a function of material mass and specific cost of material
 
-        outputs['mass_total'] = (inputs['mass_copper'] +
-        inputs['mass_iron'] +
-        inputs['mass_SC'] +
-        inputs['mass_structural'])
+        outputs["mass_total"] = (
+            inputs["mass_copper"] + inputs["mass_iron"] + inputs["mass_SC"] + inputs["mass_structural"]
+        )
 
-        outputs['cost_total'] = (inputs['mass_copper']*inputs['C_Cu'] +
-        inputs['mass_iron']*inputs['C_Fe'] +
-        inputs['mass_SC']*inputs['C_NbTi'] +
-        inputs['mass_structural']*inputs['C_Fes'])
+        outputs["cost_total"] = (
+            inputs["mass_copper"] * inputs["C_Cu"]
+            + inputs["mass_iron"] * inputs["C_Fe"]
+            + inputs["mass_SC"] * inputs["C_NbTi"]
+            + inputs["mass_structural"] * inputs["C_Fes"]
+        )
 
 
 class LTS_Outer_Rotor_Opt(om.Group):
@@ -42,12 +42,12 @@ class LTS_Outer_Rotor_Opt(om.Group):
         self.options.declare("modeling_options")
 
     def setup(self):
-        #self.linear_solver = lbgs = om.LinearBlockJac()  # om.LinearBlockGS()
-        #self.nonlinear_solver = nlbgs = om.NonlinearBlockGS()
-        #nlbgs.options["maxiter"] = 3
-        #nlbgs.options["atol"] = 1e-2
-        #nlbgs.options["rtol"] = 1e-8
-        #nlbgs.options["iprint"] = 2
+        # self.linear_solver = lbgs = om.LinearBlockJac()  # om.LinearBlockGS()
+        # self.nonlinear_solver = nlbgs = om.NonlinearBlockGS()
+        # nlbgs.options["maxiter"] = 3
+        # nlbgs.options["atol"] = 1e-2
+        # nlbgs.options["rtol"] = 1e-8
+        # nlbgs.options["iprint"] = 2
         modeling_options = self.options["modeling_options"]
 
         ivcs = om.IndepVarComp()
@@ -62,7 +62,7 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("h_yr", 0.0, units="m", desc="Rotor yoke height")
         ivcs.add_output("h_sc", 0.0, units="m", desc="SC coil height ")
 
-        #ivcs.add_output("alpha_p", 0.0, desc="pole arc coefficient")
+        # ivcs.add_output("alpha_p", 0.0, desc="pole arc coefficient")
         ivcs.add_output("alpha", 0.0, units="deg", desc="Start angle of field coil")
         ivcs.add_output("dalpha", 0.0, units="deg", desc="Start angle of field coil")
         ivcs.add_output("I_sc", 0.0, units="A", desc="SC current")
@@ -84,11 +84,10 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("rho_Copper", 0.0, units="kg/(m**3)", desc="Copper density")
         ivcs.add_output("rho_NbTi", 0.0, units="kg/(m**3)", desc="SC conductor mass density ")
         ivcs.add_output("resisitivty_Cu", 0.0, units="ohm*m", desc="Copper resistivity ")
-        ivcs.add_output('C_Cu',0.0, units='USD/kg', desc='Specific cost of copper')
-        ivcs.add_output('C_Fe',0.0, units='USD/kg', desc='Specific cost of magnetic steel/iron')
-        ivcs.add_output('C_Fes',0.0, units='USD/kg', desc='Specific cost of structural steel')
-        ivcs.add_output('C_NbTi',0.0, units='USD/kg' , desc='Specific cost of Magnet')
-
+        ivcs.add_output("C_Cu", 0.0, units="USD/kg", desc="Specific cost of copper")
+        ivcs.add_output("C_Fe", 0.0, units="USD/kg", desc="Specific cost of magnetic steel/iron")
+        ivcs.add_output("C_Fes", 0.0, units="USD/kg", desc="Specific cost of structural steel")
+        ivcs.add_output("C_NbTi", 0.0, units="USD/kg", desc="Specific cost of Magnet")
 
         ivcs.add_output("U_b", 0.0, units="V", desc="brush voltage ")
         # ivcs.add_output("r_strand", 0.0, units="mm", desc="radius of the SC wire strand")

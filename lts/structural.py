@@ -33,14 +33,12 @@ def plate_constant(a, b, v, r_o, t, E):
     C_6 = 0.25 * (b / a) * ((b / a) ** 2 - 1 + 2 * np.log(a / b))
     C_8 = 0.5 * (1 + v + (1 - v) * (b / a) ** 2)
     C_9 = (b / a) * (0.5 * (1 + v) * np.log(a / b) + 0.25 * (1 - v) * (1 - (b / a) ** 2))
-    L_11 = (1 / 64) * (
-        1 + 4 * (b / a) ** 2 - 5 * (b / a) ** 4 - 4 * (b/ a) ** 2 * (2 + (b / a) ** 2) * np.log(a /b)
-    )
+    L_11 = (1 / 64) * (1 + 4 * (b / a) ** 2 - 5 * (b / a) ** 4 - 4 * (b / a) ** 2 * (2 + (b / a) ** 2) * np.log(a / b))
     L_17 = 0.25 * (1 - 0.25 * (1 - v) * ((1 - (r_o / a) ** 4) - (r_o / a) ** 2 * (1 + (1 + v) * np.log(a / r_o))))
 
-    L_14=1/16*(1-(b/a)**2-4*(b/a)**2*np.log(a/b))
+    L_14 = 1 / 16 * (1 - (b / a) ** 2 - 4 * (b / a) ** 2 * np.log(a / b))
 
-    return D, C_2, C_3, C_5, C_6, C_8, C_9, L_11, L_17,L_14
+    return D, C_2, C_3, C_5, C_6, C_8, C_9, L_11, L_17, L_14
 
 
 class LTS_inactive_rotor(om.ExplicitComponent):
@@ -166,7 +164,7 @@ class LTS_inactive_rotor(om.ExplicitComponent):
         f = Sigma_normal * r_i ** 2 * t_rdisc / (E * (h_total) * (f_d_denom1 + f_d_denom2))
 
         u_d = (
-            f / (2*D_L * (Lambda_L) ** 3) * ((C_14_L / (2 * C_11_L) * F_2_L - C_13_L / C_11_L * F_1_L - 0.5 * F_4_L))
+            f / (2 * D_L * (Lambda_L) ** 3) * ((C_14_L / (2 * C_11_L) * F_2_L - C_13_L / C_11_L * F_1_L - 0.5 * F_4_L))
             + y_sh
         )
 
@@ -178,11 +176,11 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             * (((r_i) ** 2 - (R_shaft_outer) ** 2) * t_rdisc + ((r_i + h_yr_s) ** 2 - (r_i ** 2)) * l_eff_rotor)
         )
 
-        outputs["u_ar"] = abs(outputs["u_ar"] + y_sh)
+        outputs["u_ar"] = np.abs(outputs["u_ar"]) + y_sh
 
-        outputs["u_allowable_r"] = 0.2*delta_em * u_allow_pcent / 100
+        outputs["u_allowable_r"] = 0.2 * delta_em * 0.01 * u_allow_pcent
 
-        outputs["U_rotor_radial_constraint"] = outputs["u_allowable_r"] - abs(outputs["u_ar"])
+        outputs["U_rotor_radial_constraint"] = np.abs(outputs["u_ar"]) / outputs["u_allowable_r"]
 
         ###################################################### Electromagnetic design#############################################
         # return D,C_2,C_3,C_5,C_6,C_8,C_9,L_11,L_17
@@ -191,7 +189,7 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             r_i + h_total * 0.5,
             R_shaft_outer,
             v,
-            r_i+h_total * 0.5,
+            r_i + h_total * 0.5,
             t_rdisc,
             E,
         )
@@ -213,25 +211,21 @@ class LTS_inactive_rotor(om.ExplicitComponent):
         #    E,
         # )
 
-
-
         outputs["W_ry"] = rho_Fe * g * np.sin(np.deg2rad(Tilt_angle)) * (L_r - t_rdisc) * h_total
 
-
-
-        y_ai1r = (-outputs["W_ry"]
+        y_ai1r = (
+            -outputs["W_ry"]
             * (r_i + h_total * 0.5) ** 4
             / (R_shaft_outer * W_back_iron[0])
             * (W_back_iron[1] * W_back_iron[4] / W_back_iron[3] - W_back_iron[2])
         )
 
-
-        #W_sr = rho_steel * g * np.sin(np.deg2rad(Tilt_angle)) * (L_r - t_rdisc) * h_yr_s
+        # W_sr = rho_steel * g * np.sin(np.deg2rad(Tilt_angle)) * (L_r - t_rdisc) * h_yr_s
         # y_ai2r = ( -W_sr
         #     * (r_i + h_yr_s * 0.5) ** 4
         #     / (R_shaft_outer * W_ssteel[0])
         #     * (W_ssteel[1] * W_ssteel[4] / W_ssteel[3] - W_ssteel[2])
-       #)
+        # )
         # W_Cu = np.sin(np.deg2rad(Tilt_angle)) * Copper / (2 * np.pi * (D_a * 0.5 - h_s * 0.5))
         # y_ai3r = (
         #    -W_Cu * (D_a * 0.5 - h_s * 0.5) ** 4 / (R_shaft_outer * W_cu[0]) * (W_cu[1] * W_cu[4] / W_cu[3] - W_cu[2])
@@ -247,7 +241,6 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             * (W_back_iron[4] * 0.5 / (a_ii * R_shaft_outer) * (a_ii ** 2 - R_shaft_outer ** 2) - W_back_iron[9])
         )
 
-
         Q_b = wr_disc * 0.5 / R_shaft_outer * (a_ii ** 2 - R_shaft_outer ** 2)
 
         y_aiir = (
@@ -256,15 +249,13 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             - wr_disc * a_ii ** 4 / W_back_iron[0] * W_back_iron[7]
         )
 
-
         # I = np.pi * 0.25 * (r_i ** 4 - R_shaft_outer ** 4)
         # F_ecc           = Sigma_normal*2*pi*K_rad*r_g**3
         # M_ar             = F_ecc*L_r*0.5
 
+        outputs["y_ar"] = y_ai1r + y_aiir + (r_i + h_yr + h_yr_s) * theta_sh  # +M_ar*L_r**2*0/(2*E*I)
 
-        outputs["y_ar"] = y_ai1r+y_aiir + (r_i + h_yr + h_yr_s) * theta_sh  # +M_ar*L_r**2*0/(2*E*I)
-
-        outputs["y_allowable_r"] = l_eff_rotor * y_allow_pcent / 100
+        outputs["y_allowable_r"] = l_eff_rotor * 0.01 * y_allow_pcent
         # Torsional deformation of rotor
         J_dr = (1 / 32) * np.pi * (r_i ** 4 - R_shaft_outer ** 4)
 
@@ -280,7 +271,7 @@ class LTS_inactive_rotor(om.ExplicitComponent):
             * (((r_i) ** 2 - (R_shaft_outer) ** 2) * t_rdisc + ((r_i + h_yr_s) ** 2 - (r_i ** 2)) * l_eff_rotor)
         )
 
-        outputs["U_rotor_axial_constraint"] = outputs["y_allowable_r"] - abs(outputs["y_ar"])
+        outputs["U_rotor_axial_constraint"] = np.abs(outputs["y_ar"]) / outputs["y_allowable_r"]
 
 
 class LTS_inactive_stator(om.ExplicitComponent):
@@ -394,21 +385,23 @@ class LTS_inactive_stator(om.ExplicitComponent):
 
         f_d_denom2 = (
             t_sdisc
-            / (2*D_0 * (Lambda_0) ** 3)
-            * (C_14_0 /(2*C_11_0) * F_2_0- C_13_0 / C_11_0 * F_1_0 - 0.5 * F_4_0)
+            / (2 * D_0 * (Lambda_0) ** 3)
+            * (C_14_0 / (2 * C_11_0) * F_2_0 - C_13_0 / C_11_0 * F_1_0 - 0.5 * F_4_0)
         )
         f = Sigma_normal * (R_s) ** 2 * t_sdisc / (E * (h_ys) * (f_d_denom1 + f_d_denom2))
         outputs["u_as"] = (
             (Sigma_normal * (R_s) ** 2) / (E * (h_ys))
-            - f / (2*D_0 * (Lambda_0) ** 3) * ((C_14_L / (2 * C_11_L) * F_2_L - C_13_L / C_11_L * F_1_L- 0.5 * F_4_L))
+            - f
+            / (2 * D_0 * (Lambda_0) ** 3)
+            * ((C_14_L / (2 * C_11_L) * F_2_L - C_13_L / C_11_L * F_1_L - 0.5 * F_4_L))
             + y_bd
         )
 
         outputs["u_as"] += y_bd
 
-        outputs["u_allowable_s"] = 0.2*delta_em * u_allow_pcent / 100
+        outputs["u_allowable_s"] = 0.2 * delta_em * 0.01 * u_allow_pcent
 
-        outputs["U_stator_radial_constraint"] = outputs["u_allowable_s"] - abs(outputs["u_as"])
+        outputs["U_stator_radial_constraint"] = np.abs(outputs["u_as"]) / outputs["u_allowable_s"]
 
         ###################################################### Electromagnetic design#############################################
 
@@ -450,7 +443,10 @@ class LTS_inactive_stator(om.ExplicitComponent):
 
         a_ii = R_s
         r_oii = R_nose_outer
-        M_sb = (-w_disc_s* a_ii ** 2/ W_ssteel[3]
+        M_sb = (
+            -w_disc_s
+            * a_ii ** 2
+            / W_ssteel[3]
             * (W_ssteel[4] * 0.5 / (a_ii * R_nose_outer) * (a_ii ** 2 - r_oii ** 2) - W_ssteel[9])
         )
         Q_sb = w_disc_s * 0.5 / R_nose_outer * (a_ii ** 2 - r_oii ** 2)
@@ -465,7 +461,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
         # F_ecc           = inputs['Sigma_normal']*2*np.pi*inputs['K_rad']*inputs['r_g']**2
         # M_as             = F_ecc*L_s*0.5
 
-        outputs["y_as"] =  y_ai1s + y_ai2s+y_aiis + (R_s + h_ys * 0.5) * theta_bd  # M_as*L_s**2*0/(2*E*I)
+        outputs["y_as"] = y_ai1s + y_ai2s + y_aiis + (R_s + h_ys * 0.5) * theta_bd  # M_as*L_s**2*0/(2*E*I)
 
         outputs["y_allowable_s"] = L_s * y_allow_pcent / 100
 
@@ -483,7 +479,7 @@ class LTS_inactive_stator(om.ExplicitComponent):
             + np.pi * (r_os ** 2 - r_is ** 2) * l_eff_stator
         )
 
-        outputs["U_stator_axial_constraint"] = outputs["y_allowable_s"] - abs(outputs["y_as"])
+        outputs["U_stator_axial_constraint"] = np.abs(outputs["y_as"]) / outputs["y_allowable_s"]
 
         outputs["mass_structural"] = outputs["Structural_mass_stator"] + Structural_mass_rotor
 
@@ -515,9 +511,9 @@ class LTS_Outer_Rotor_Structural(om.Group):
         ivcs.add_output("rho_steel", 0.0, units="kg/m**3", desc="Structural steel mass density")
         ivcs.add_output("u_allow_pcent", 0.0, desc="Radial deflection as a percentage of air gap diameter")
         ivcs.add_output("y_allow_pcent", 0.0, desc="Radial deflection as a percentage of air gap diameter")
-        ivcs.add_output("z_allow_deg", 0.0, units="deg", desc="Allowable torsional twist")
-        ivcs.add_output("perc_allowable_radial", 0.0, desc=" Allowable radial % deflection ")
-        ivcs.add_output("perc_allowable_axial", 0.0, desc=" Allowable axial % deflection ")
+        # ivcs.add_output("z_allow_deg", 0.0, units="deg", desc="Allowable torsional twist")
+        #ivcs.add_output("perc_allowable_radial", 0.0, desc=" Allowable radial % deflection ")
+        #ivcs.add_output("perc_allowable_axial", 0.0, desc=" Allowable axial % deflection ")
 
         self.add_subsystem("ivcs", ivcs, promotes=["*"])
         self.add_subsystem("sys1", LTS_inactive_rotor(), promotes=["*"])
@@ -526,80 +522,73 @@ class LTS_Outer_Rotor_Structural(om.Group):
 
 if __name__ == "__main__":
 
-    prob = om.Problem()
-    prob.model = LTS_Outer_Rotor_Structural()
+    prob_struct = om.Problem()
+    prob_struct.model = LTS_Outer_Rotor_Structural()
 
-    prob.driver = om.ScipyOptimizeDriver()  # pyOptSparseDriver()
-    prob.driver.options["optimizer"] = "SLSQP"  #'COBYLA'
-    prob.driver.options["maxiter"] = 10
-    # prob.driver.opt_settings['IPRINT'] = 4
-    # prob.driver.opt_settings['ITRM'] = 3
-    # prob.driver.opt_settings['ITMAX'] = 10
-    # prob.driver.opt_settings['DELFUN'] = 1e-3
-    # prob.driver.opt_settings['DABFUN'] = 1e-3
-    # prob.driver.opt_settings['IFILE'] = 'CONMIN_LST.out'
-    # prob.root.deriv_options['type']='fd'
+    prob_struct.driver = om.ScipyOptimizeDriver()
+    prob_struct.driver.options["optimizer"] = "SLSQP"
+    prob_struct.driver.options["maxiter"] = 100
 
-    recorder = om.SqliteRecorder("log.sql")
-    prob.driver.add_recorder(recorder)
-    prob.add_recorder(recorder)
-    prob.driver.recording_options["excludes"] = ["*_df"]
-    prob.driver.recording_options["record_constraints"] = True
-    prob.driver.recording_options["record_desvars"] = True
-    prob.driver.recording_options["record_objectives"] = True
+    #recorder = om.SqliteRecorder("log.sql")
+    #prob_struct.driver.add_recorder(recorder)
+    #prob_struct.add_recorder(recorder)
+    #prob_struct.driver.recording_options["excludes"] = ["*_df"]
+    #prob_struct.driver.recording_options["record_constraints"] = True
+    #prob_struct.driver.recording_options["record_desvars"] = True
+    #prob_struct.driver.recording_options["record_objectives"] = True
 
-    prob.model.add_design_var("h_yr_s", lower=0.0250, upper=0.5, ref=0.3)
-    prob.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
-    prob.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
-    prob.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
-    prob.model.add_objective("structural_mass")
+    prob_struct.model.add_design_var("h_yr_s", lower=0.0250, upper=0.5, ref=0.3)
+    prob_struct.model.add_design_var("h_ys", lower=0.025, upper=0.6, ref=0.35)
+    prob_struct.model.add_design_var("t_rdisc", lower=0.025, upper=0.5, ref=0.3)
+    prob_struct.model.add_design_var("t_sdisc", lower=0.025, upper=0.5, ref=0.3)
+    prob_struct.model.add_objective("mass_structural")
 
-    prob.model.add_constraint("U_rotor_radial_constraint", lower=0.01)
-    prob.model.add_constraint("U_rotor_axial_constraint", lower=0.01)
-    prob.model.add_constraint("U_stator_radial_constraint", lower=0.01)
-    prob.model.add_constraint("U_stator_axial_constraint", lower=0.01)
+    prob_struct.model.add_constraint("U_rotor_radial_constraint", upper=1.0)
+    prob_struct.model.add_constraint("U_rotor_axial_constraint", upper=1.0)
+    prob_struct.model.add_constraint("U_stator_radial_constraint", upper=1.0)
+    prob_struct.model.add_constraint("U_stator_axial_constraint", upper=1.0)
 
-    prob.model.approx_totals(method="fd")
+    prob_struct.model.approx_totals(method="fd")
 
-    prob.setup()
+    prob_struct.setup()
     # --- Design Variables ---
 
     # Initial design variables for a PMSG designed for a 15MW turbine
-    prob["Sigma_shear"] = 74.99692029e3
-    prob["Sigma_normal"] = 378.45123826e3
-    prob["T_e"] = 9e06
-    prob["l_eff_stator"] = 1.44142189  # rev 1 9.94718e6
-    prob["l_eff_rotor"] = 1.2827137
-    prob["D_a"] = 7.74736313
-    prob["delta_em"] = 0.0199961
-    prob["h_s"] = 0.1803019703
-    prob["D_sc"] = 7.78735533
-    prob["rho_steel"] = 7850
-    prob["rho_Fe"] = 7700
-    prob["Tilt_angle"] = 90.0
-    prob["R_shaft_outer"] = 1.25
-    prob["R_nose_outer"] = 0.95
-    prob["u_allow_pcent"] = 50
-    prob["y_allow_pcent"] = 20
-    prob["h_yr"] = 0.1254730934
-    prob["h_yr_s"] = 0.025
-    prob["h_ys"] = 0.050
-    prob["t_rdisc"] = 0.05
-    prob["t_sdisc"] = 0.1
-    prob["y_bd"] = 0.00
-    prob["theta_bd"] = 0.00
-    prob["y_sh"] = 0.00
-    prob["theta_sh"] = 0.00
+    #prob_struct["Sigma_shear"] = 74.99692029e3
+    prob_struct["Sigma_normal"] = 378.45123826e3
+    prob_struct["T_e"] = 9e06
+    prob_struct["l_eff_stator"] = 1.44142189  # rev 1 9.94718e6
+    prob_struct["l_eff_rotor"] = 1.2827137
+    prob_struct["D_a"] = 7.74736313
+    prob_struct["delta_em"] = 0.0199961
+    prob_struct["h_s"] = 0.1803019703
+    prob_struct["D_sc"] = 7.78735533
+    prob_struct["rho_steel"] = 7850
+    prob_struct["rho_Fe"] = 7700
+    prob_struct["Tilt_angle"] = 90.0
+    prob_struct["R_shaft_outer"] = 1.25
+    prob_struct["R_nose_outer"] = 0.95
+    prob_struct["u_allow_pcent"] = 50
+    prob_struct["y_allow_pcent"] = 20
+    prob_struct["h_yr"] = 0.1254730934
+    prob_struct["h_yr_s"] = 0.025
+    prob_struct["h_ys"] = 0.050
+    prob_struct["t_rdisc"] = 0.05
+    prob_struct["t_sdisc"] = 0.1
+    prob_struct["y_bd"] = 0.00
+    prob_struct["theta_bd"] = 0.00
+    prob_struct["y_sh"] = 0.00
+    prob_struct["theta_sh"] = 0.00
 
-    prob["Copper"] = 60e3
-    prob["mass_SC"] = 4000
+    #prob_struct["mass_copper"] = 60e3
+    prob_struct["mass_SC"] = 4000
 
-    prob.model.approx_totals(method="fd")
+    prob_struct.model.approx_totals(method="fd")
 
-    prob.run_model()
-    # prob.run_driver()
+    #prob_struct.run_model()
+    prob_struct.run_driver()
 
-    # prob.model.list_outputs(values = True, hierarchical=True)
+    prob_struct.model.list_outputs(val=True, hierarchical=True)
 
     raw_data = {
         "Parameters": [
@@ -616,27 +605,27 @@ if __name__ == "__main__":
             "Total structural mass",
         ],
         "Values": [
-            prob.get_val("t_rdisc", units="mm"),
-            prob.get_val("h_yr_s", units="mm"),
-            prob.get_val("t_sdisc", units="mm"),
-            prob.get_val("h_ys", units="mm"),
-            prob.get_val("u_ar", units="mm"),
-            prob.get_val("y_ar", units="mm"),
-            prob.get_val("u_as", units="mm"),
-            prob.get_val("y_as", units="mm"),
-            prob.get_val("Structural_mass_rotor", units="t"),
-            prob.get_val("Structural_mass_stator", units="t"),
-            prob.get_val("mass_total", units="t"),
+            prob_struct.get_val("t_rdisc", units="mm"),
+            prob_struct.get_val("h_yr_s", units="mm"),
+            prob_struct.get_val("t_sdisc", units="mm"),
+            prob_struct.get_val("h_ys", units="mm"),
+            prob_struct.get_val("u_ar", units="mm"),
+            prob_struct.get_val("y_ar", units="mm"),
+            prob_struct.get_val("u_as", units="mm"),
+            prob_struct.get_val("y_as", units="mm"),
+            prob_struct.get_val("Structural_mass_rotor", units="t"),
+            prob_struct.get_val("Structural_mass_stator", units="t"),
+            prob_struct.get_val("mass_structural", units="t"),
         ],
         "Limit": [
             "",
             "",
             "",
             "",
-            prob.get_val("u_allowable_r", units="mm"),
-            prob.get_val("y_allowable_r", units="mm"),
-            prob.get_val("u_allowable_s", units="mm"),
-            prob.get_val("y_allowable_s", units="mm"),
+            prob_struct.get_val("u_allowable_r", units="mm"),
+            prob_struct.get_val("y_allowable_r", units="mm"),
+            prob_struct.get_val("u_allowable_s", units="mm"),
+            prob_struct.get_val("y_allowable_s", units="mm"),
             "",
             "",
             "",
@@ -655,9 +644,7 @@ if __name__ == "__main__":
             "tons",
         ],
     }
-    # print(raw_data)
-    #df = pd.DataFrame(raw_data, columns=["Parameters", "Values", "Limit", "Units"])
+    df = pd.DataFrame(raw_data, columns=["Parameters", "Values", "Limit", "Units"])
+    #df.to_excel("Optimized_structure_LTSG_MW.xlsx")
+    print(df)
 
-    #print(df)
-
-    df.to_excel("Optimized_structure_LTSG_MW.xlsx")
