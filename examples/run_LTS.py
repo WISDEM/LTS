@@ -3,6 +3,20 @@ from lts.lts import LTS_Outer_Rotor_Opt
 from lts.structural import LTS_Outer_Rotor_Structural
 import os
 import pandas as pd
+import numpy as np
+
+ratings_known = [15, 17, 20, 25]
+rotor_diameter = {}
+rotor_diameter[15] = 242.24
+rotor_diameter[17] = 257.88
+rotor_diameter[20] = 279.71
+rotor_diameter[25] = 312.73
+rated_speed = {}
+rated_speed[15] = 7.49
+rated_speed[17] = 7.04
+rated_speed[20] = 6.49
+rated_speed[25] = 5.80
+target_eff = 0.97
 
 mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
 
@@ -65,10 +79,13 @@ def save_data(fname, prob):
     df.to_excel(froot + ".xlsx", index=False)
     df.to_csv(froot + ".csv", index=False)
 
-def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
+def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, opt_flag=False, obj_str="cost", ratingMW=17):
     if output_dir is None:
         output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
+
+    ratingMW = int(ratingMW)
+    target_torque = ratingMW/(np.pi*rated_speed[ratingMW]/30.0)/target_eff
 
     modeling_options = {}
     modeling_options["output_dir"] = output_dir
@@ -84,8 +101,8 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
     #prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
     #prob.driver.options["maxiter"] = 500 #50
     prob.driver = om.DifferentialEvolutionDriver()
-    prob.driver.options["max_gen"] = 10
-    prob.driver.options["pop_size"] = 40
+    prob.driver.options["max_gen"] = 15
+    prob.driver.options["pop_size"] = 60
     prob.driver.options["penalty_exponent"] = 2
 
     recorder = om.SqliteRecorder(os.path.join(output_dir, "log.sql"))
@@ -97,38 +114,40 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
     prob.driver.recording_options["record_objectives"] = True
 
     prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
-    prob.model.add_design_var("delta_em", lower=0.060, upper=0.10, ref=0.08)
+    prob.model.add_design_var("delta_em", lower=0.060, upper=0.15, ref=0.08)
     prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     prob.model.add_design_var("p", lower=20, upper=30, ref=25)
-    prob.model.add_design_var("h_yr", lower=0.01, upper=0.4, ref=0.1)
+    prob.model.add_design_var("h_yr", lower=0.01, upper=0.45, ref=0.1)
     prob.model.add_design_var("l_s", lower=1, upper=1.75)
     prob.model.add_design_var("alpha", lower=0.1, upper=1)
     prob.model.add_design_var("dalpha", lower=1, upper=5)
-    prob.model.add_design_var("I_sc", lower=200, upper=700, ref=450)
-    prob.model.add_design_var("N_sc", lower=1500, upper=3000, ref=1500)
+    prob.model.add_design_var("I_sc", lower=150, upper=700, ref=450)
+    prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
     prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
     # prob.model.add_design_var("J_s", lower=1.5, upper=6, ref=3.75)
 
-    # prob.model.add_objective("mass_total", ref=1e6)
-    prob.model.add_objective("cost_total", ref=1e6)
-
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001)
-
     # Differential evolution driver cannot do double-sided constraints, so have to hack it
     prob.model.add_constraint("E_p", lower=0.8 * 3300, ref=3000)
     prob.model.add_constraint("E_p_ratio", upper=1.20)
     prob.model.add_constraint("B_coil_max", lower=6.0)
     prob.model.add_constraint("Coil_max_ratio", upper=1.2)  # Consider user-defined limit instead of load line
-
     prob.model.add_constraint("B_rymax", upper=2.1)
-
-    prob.model.add_constraint("gen_eff", lower=0.97)
     prob.model.add_constraint("torque_ratio", lower=1.0)
-    prob.model.add_constraint("Torque_actual", upper=24.5e6, ref=20e6)
-    # prob.model.add_constraint("Critical_current_ratio",upper=1.)
+    prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
+    prob.model.add_constraint("Critical_current_ratio",upper=1.2)
+    if not obj_str.lower() in ['eff','efficiency']:
+        prob.model.add_constraint("gen_eff", lower=0.97)
+
+    if obj_str.lower() == 'cost':
+        prob.model.add_objective("cost_total", ref=1e6)
+    elif obj_str.lower() == 'mass':
+        prob.model.add_objective("mass_total", ref=1e6)
+    elif obj_str.lower() in ['eff','efficiency']:
+        prob.model.add_objective("gen_eff", scaler=-1.0)
 
     prob.model.approx_totals(method="fd")
 
@@ -144,24 +163,26 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
         prob["K_e"] = 0.5  # specific hysteresis losses W/kg @ 1.5 T
 
         # ## Initial design variables for a PMSG designed for a 15MW turbine
-        prob["P_rated"] = 17e6
-        prob["T_rated"] = 23.07e6
+        print(ratingMW, rated_speed[ratingMW], target_torque)
+        prob["system_coverage"] = 0.63
+        prob["P_rated"] = ratingMW * 1e6
+        prob["T_rated"] = target_torque
         prob["E_p_target"] = 3300.0
-        prob["N_nom"] = 7.7
-        prob["D_a"] = 9.0 #7.86277266
-        prob["delta_em"] = 0.07114809 #0.096
-        prob["h_s"] = 0.26448025 #0.1
+        prob["N_nom"] = rated_speed[ratingMW]
+        prob["D_a"] = 9.0
+        prob["delta_em"] = 0.1248916 #0.07114809
+        prob["h_s"] = 0.1 #0.26448025
         prob["p"] = 30.0
-        prob["h_sc"] = 0.0798385 #0.15
-        prob["h_yr"] = 0.4 #0.18651016
-        prob["alpha"] = 0.1 #0.73251198
+        prob["h_sc"] = 0.06053662 #0.0798385
+        prob["h_yr"] = 0.16824667 #0.4
+        prob["alpha"] = 0.1
         prob["dalpha"] = 1.0
-        prob["I_sc"] = 675.23529314 #660.09589169
-        prob["N_sc"] = 1500.0 #1941.1454573
-        prob["N_c"] = 1.0 #2.07793977
-        prob["I_s"] = 2933.37488172 #3000.0
+        prob["I_sc"] = 284.90199962 #675.23529314
+        prob["N_sc"] = 2811.37208924 #1500.0
+        prob["N_c"] = 2.2532984 #1.0
+        prob["I_s"] = 1945.9858772 #2933.37488172
         prob["J_s"] = 3.0
-        prob["l_s"] = 1.75 #1.05499191
+        prob["l_s"] = 1.11086996 #1.75
 
         # Specific costs
         prob["C_Cu"] = 10.3  #  https://markets.businessinsider.com/commodities/copper-price
@@ -183,10 +204,10 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
         prob["R_nose_outer"] = 0.95
         prob["u_allow_pcent"] = 30
         prob["y_allow_pcent"] = 20
-        prob["h_yr_s"] = 0.18866371 #0.43394501
-        prob["h_ys"] = 0.025 #19642297
-        prob["t_rdisc"] = 0.5 #19016171
-        prob["t_sdisc"] = 0.5 #42709254
+        prob["h_yr_s"] = 0.025 #0.18866371
+        prob["h_ys"] = 0.025
+        prob["t_rdisc"] = 0.02507061
+        prob["t_sdisc"] = 0.025
         prob["y_bd"] = 0.00
         prob["theta_bd"] = 0.00
         prob["y_sh"] = 0.00
@@ -197,8 +218,10 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
 
     prob.model.approx_totals(method="fd")
 
-    prob.run_model()
-    #prob.run_driver()
+    if opt_flag:
+        prob.run_driver()
+    else:
+        prob.run_model()
 
     # Clean run directory after the run
     if cleanup_flag:
@@ -217,7 +240,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True):
 
     return prob
 
-def optimize_structural_design(prob_in=None, output_dir=None):
+def optimize_structural_design(prob_in=None, output_dir=None, opt_flag=False):
     if output_dir is None:
         output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
@@ -288,8 +311,10 @@ def optimize_structural_design(prob_in=None, output_dir=None):
 
     prob_struct.model.approx_totals(method="fd")
 
-    #prob_struct.run_model()
-    prob_struct.run_driver()
+    if opt_flag:
+        prob_struct.run_driver()
+    else:
+        prob_struct.run_model()
 
     #prob_struct.model.list_outputs(val=True, hierarchical=True)
 
@@ -609,14 +634,12 @@ def write_all_data(prob, output_dir=None):
     df = pd.DataFrame(raw_data, columns=["Parameters", "Values", "Limit", "Units"])
     df.to_excel(os.path.join(output_dir, "Optimized_LTSG_" + str(prob["P_rated"][0] / 1e6) + "_MW.xlsx"))
 
-
-if __name__ == "__main__":
-
-    output_dir = os.path.join(mydir, "outputs")
+def run_all(output_str, opt_flag, obj_str, ratingMW):
+    output_dir = os.path.join(mydir, output_str)
 
     # Optimize just magnetrics with GA and then structural with SLSQP
-    prob = optimize_magnetics_design(output_dir=output_dir)
-    prob_struct = optimize_structural_design(prob_in=prob, output_dir=output_dir)
+    prob = optimize_magnetics_design(output_dir=output_dir, opt_flag=opt_flag, obj_str=obj_str, ratingMW=int(ratingMW))
+    prob_struct = optimize_structural_design(prob_in=prob, output_dir=output_dir, opt_flag=opt_flag)
 
     # Bring all data together
     prob = copy_data(prob_struct, prob)
@@ -626,3 +649,9 @@ if __name__ == "__main__":
     write_all_data(prob, output_dir=output_dir)
     prob.model.list_outputs(val=True, hierarchical=True)
     cleanup_femm_files(mydir)
+
+if __name__ == "__main__":
+    opt_flag = True
+    for k in ratings_known:
+        for obj in ["cost", "mass", "eff"]:
+            run_all(f"outputs{k}-{obj}", opt_flag, obj, k)

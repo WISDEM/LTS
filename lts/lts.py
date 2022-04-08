@@ -17,6 +17,7 @@ class LTS_Cost(om.ExplicitComponent):
         self.add_input("mass_SC", 0.0, units="kg", desc="Magnet mass")
         self.add_input("mass_structural", 0.0, units="kg", desc="Structural mass")
 
+        self.add_input("system_coverage", 0.0, desc="Fraction of system that is captured with model, which should then be used to scale mass and cost")
         # Outputs
         self.add_output("mass_total", 0.0, units="kg", desc="Structural mass")
         self.add_output("cost_total", 0.0, units="USD", desc="Total cost")
@@ -24,12 +25,13 @@ class LTS_Cost(om.ExplicitComponent):
 
     def compute(self, inputs, outputs):
         # Material cost as a function of material mass and specific cost of material
+        coeff = 1.0 / inputs["system_coverage"]
 
-        outputs["mass_total"] = (
+        outputs["mass_total"] = coeff * (
             inputs["mass_copper"] + inputs["mass_iron"] + inputs["mass_SC"] + inputs["mass_structural"]
         )
 
-        outputs["cost_total"] = (
+        outputs["cost_total"] = coeff * (
             inputs["mass_copper"] * inputs["C_Cu"]
             + inputs["mass_iron"] * inputs["C_Fe"]
             + inputs["mass_SC"] * inputs["C_NbTi"]
@@ -90,6 +92,8 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("C_NbTi", 0.0, units="USD/kg", desc="Specific cost of Magnet")
 
         ivcs.add_output("U_b", 0.0, units="V", desc="brush voltage ")
+        ivcs.add_output("system_coverage", 0.0, desc="Fraction of system that is captured with model, which should then be used to scale mass and cost")
+
         # ivcs.add_output("r_strand", 0.0, units="mm", desc="radius of the SC wire strand")
         # ivcs.add_output("k_pf_sc", 0.0, units="mm", desc="packing factor for SC wires")
         # ivcs.add_output("J_c", 0.0, units="A/(mm*mm)", desc="SC critical current density")
