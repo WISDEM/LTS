@@ -85,7 +85,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     os.makedirs(output_dir, exist_ok=True)
 
     ratingMW = int(ratingMW)
-    target_torque = ratingMW/(np.pi*rated_speed[ratingMW]/30.0)/target_eff
+    target_torque = 1e6*ratingMW/(np.pi*rated_speed[ratingMW]/30.0)/target_eff
 
     modeling_options = {}
     modeling_options["output_dir"] = output_dir
