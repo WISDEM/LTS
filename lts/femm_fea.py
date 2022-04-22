@@ -44,17 +44,19 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     #        femm.mo_addcontour((radius_sc+h_sc)*np.cos(beta_r),(radius_sc+h_sc)*np.sin(beta_r))
     #        femm.mo_addcontour((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
 
-    femm.mo_selectblock(
-        (radius_sc + h_sc * 0.5) * np.cos(alpha_r + (beta_r - alpha_r) * 0.5),
-        (radius_sc + h_sc * 0.5) * np.sin(alpha_r + (beta_r - alpha_r) * 0.5),
-    )
+#    femm.mo_selectblock(
+#        (radius_sc + h_sc * 0.5) * np.cos(alpha_r + (beta_r - alpha_r) * 0.5),
+#        (radius_sc + h_sc * 0.5) * np.sin(alpha_r + (beta_r - alpha_r) * 0.5),
+#    )
     femm.mo_smooth("off")
     numelm = femm.mo_numelements()
     bcoil_area = []
     for k in range(1, numelm):
         p1, p2, p3, x, y, a, g = femm.mo_getelement(k)
-        bx, by = femm.mo_getb(x, y)
-        bcoil_area.append((bx ** 2 + by ** 2) ** 0.5)
+        mag =np.sqrt(x**2+y**2)
+        if mag >=(radius_sc-0.001) :
+            bx, by = femm.mo_getb(x, y)
+            bcoil_area.append((bx ** 2 + by ** 2) ** 0.5)
 
     B_coil_max = max(bcoil_area)
     femm.mo_clearblock()
@@ -515,7 +517,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             ## Add some block labels materials properties
             femm.mi_addmaterial("Air", 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0)
             femm.mi_addmaterial(
-                "NbTi", 0.6428571428571428571428, 0.6428571428571428571428, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                "NbTi", 0.6969698190303028, 0.6969698190303028, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             )
             femm.mi_getmaterial("M-36 Steel")
             femm.mi_getmaterial("20 SWG")
