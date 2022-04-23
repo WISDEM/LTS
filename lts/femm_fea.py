@@ -717,7 +717,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             # Analyze geometry with pyfemm
             # femm.mi_analyze()
             f=2*p1*N_nom/120
-            Time =60/(f*360)
+            Time =60/(f*2*np.pi)
             Theta_elec=(theta_tau_s*Time)*2*np.pi*N_nom/60*p1
             
             try:
