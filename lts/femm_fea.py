@@ -247,9 +247,9 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("y_Q", 0.0, desc="Slots per pole also pole pitch")
 
         # Outputs
-        self.add_output("B_g", 0.0, desc="Peak air gap flux density ")
-        self.add_output("B_rymax", 0.0, desc="Peak Rotor yoke flux density")
-        self.add_output("B_coil_max", 0.0, desc="Peak flux density in the field coils")
+        self.add_output("B_g", 0.0, units='T', desc="Peak air gap flux density ")
+        self.add_output("B_rymax", 0.0, units='T', desc="Peak Rotor yoke flux density")
+        self.add_output("B_coil_max", 0.0, units='T', desc="Peak flux density in the field coils")
         self.add_output("Torque_actual", 0.0, units="N*m", desc="Shear stress actual")
         self.add_output("Sigma_shear", 0.0, units="Pa", desc="Shear stress")
         self.add_output("Sigma_normal", 0.0, units="Pa", desc="Normal stress")
