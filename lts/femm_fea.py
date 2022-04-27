@@ -44,17 +44,19 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     #        femm.mo_addcontour((radius_sc+h_sc)*np.cos(beta_r),(radius_sc+h_sc)*np.sin(beta_r))
     #        femm.mo_addcontour((radius_sc)*np.cos(beta_r),(radius_sc)*np.sin(beta_r))
 
-    femm.mo_selectblock(
-        (radius_sc + h_sc * 0.5) * np.cos(alpha_r + (beta_r - alpha_r) * 0.5),
-        (radius_sc + h_sc * 0.5) * np.sin(alpha_r + (beta_r - alpha_r) * 0.5),
-    )
+#    femm.mo_selectblock(
+#        (radius_sc + h_sc * 0.5) * np.cos(alpha_r + (beta_r - alpha_r) * 0.5),
+#        (radius_sc + h_sc * 0.5) * np.sin(alpha_r + (beta_r - alpha_r) * 0.5),
+#    )
     femm.mo_smooth("off")
     numelm = femm.mo_numelements()
     bcoil_area = []
     for k in range(1, numelm):
         p1, p2, p3, x, y, a, g = femm.mo_getelement(k)
-        bx, by = femm.mo_getb(x, y)
-        bcoil_area.append((bx ** 2 + by ** 2) ** 0.5)
+        mag =np.sqrt(x**2+y**2)
+        if mag >=(radius_sc-0.001) :
+            bx, by = femm.mo_getb(x, y)
+            bcoil_area.append((bx ** 2 + by ** 2) ** 0.5)
 
     B_coil_max = max(bcoil_area)
     femm.mo_clearblock()
@@ -89,13 +91,12 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
     return B_g_peak, B_rymax, B_coil_max, sigma_n
 
 
-def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p):
+def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p):
     # This function loads the machine with electrical currents
     theta_p_d = np.rad2deg(theta_p_r)
 
     femm.openfemm(1)
     femm.opendocument("coil_design_new.fem")
-    T_elec = -0.5
     femm.mi_modifycircprop("A+", 1, I_s * np.sin(0))
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(1 * np.pi / 6))
     femm.mi_modifycircprop("C-", 1, -I_s * np.sin(-4 * np.pi / 6))
@@ -161,13 +162,13 @@ def B_r_B_t(D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_
         except:
             continue
 
-    femm.mi_modifycircprop("D+", 1, I_s * np.sin(T_elec + np.pi / 6))
-    femm.mi_modifycircprop("C-", 1, -I_s * np.sin(T_elec - 4 * np.pi / 6))
-    femm.mi_modifycircprop("F-", 1, -I_s * np.sin(T_elec - 3 * np.pi / 6))
-    femm.mi_modifycircprop("B+", 1, I_s * np.sin(T_elec - 8 * np.pi / 6))
-    femm.mi_modifycircprop("E+", 1, I_s * np.sin(T_elec - 7 * np.pi / 6))
-    femm.mi_modifycircprop("A-", 1, -I_s * np.sin(T_elec))
-    femm.mi_modifycircprop("D-", 1, -I_s * np.sin(T_elec + np.pi / 6))
+    femm.mi_modifycircprop("D+", 1, I_s * np.sin(Theta_elec + np.pi / 6))
+    femm.mi_modifycircprop("C-", 1, -I_s * np.sin(Theta_elec - 4 * np.pi / 6))
+    femm.mi_modifycircprop("F-", 1, -I_s * np.sin(Theta_elec - 3 * np.pi / 6))
+    femm.mi_modifycircprop("B+", 1, I_s * np.sin(Theta_elec - 8 * np.pi / 6))
+    femm.mi_modifycircprop("E+", 1, I_s * np.sin(Theta_elec - 7 * np.pi / 6))
+    femm.mi_modifycircprop("A-", 1, -I_s * np.sin(Theta_elec))
+    femm.mi_modifycircprop("D-", 1, -I_s * np.sin(Theta_elec + np.pi / 6))
 
     femm.mi_saveas("coil_design_new_I2.fem")
     femm.mi_analyze()
@@ -233,6 +234,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
+        self.add_input("N_nom", 0.0, desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
         self.add_input("con_angle", 0.0, units="deg", desc="Geometry constraint status")
@@ -285,6 +287,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         I_s = float(inputs["I_s"])
         Slots = float(inputs["Slots"])
         Y_q = float(inputs["y_Q"])
+        N_nom = float(inputs["N_nom"])
         radius_sc = D_sc / 2
         tau_p = np.pi * (radius_sc * 2 + 2 * h_sc) / (2 * p1)
         theta_p_r = tau_p / (radius_sc + h_sc)
@@ -308,7 +311,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             b_s = 0.45 * tau_s
             b_t = tau_s - b_s
             theta_b_s = b_s / (D_a * 0.5)
-            # theta_tau_s = tau_s / (D_a * 0.5) # UNUSED
+            theta_tau_s = tau_s / (D_a * 0.5) # UNUSED
             theta_b_t = (b_t) / (D_a * 0.5)
             tau_p = np.pi * (radius_sc * 2 + 2 * h_sc) / (2 * p1)
             Current = 0
@@ -515,7 +518,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             ## Add some block labels materials properties
             femm.mi_addmaterial("Air", 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0)
             femm.mi_addmaterial(
-                "NbTi", 0.6428571428571428571428, 0.6428571428571428571428, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                "NbTi", 0.6969698190303028, 0.6969698190303028, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             )
             femm.mi_getmaterial("M-36 Steel")
             femm.mi_getmaterial("20 SWG")
@@ -713,6 +716,10 @@ class FEMM_Geometry(om.ExplicitComponent):
 
             # Analyze geometry with pyfemm
             # femm.mi_analyze()
+            f=2*p1*N_nom/120
+            Time =60/(f*2*np.pi)
+            Theta_elec=(theta_tau_s*Time)*2*np.pi*N_nom/60*p1
+            
             try:
 
                 femm.mi_analyze()
@@ -740,7 +747,7 @@ class FEMM_Geometry(om.ExplicitComponent):
                 outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
                 # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
                 outputs["Coil_max_ratio"] = B_coil_max / B_o
-                outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(
+                outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(Theta_elec,
                     D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p
                 )
             except:
