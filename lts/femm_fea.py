@@ -234,7 +234,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
-        self.add_input("N_nom", 0.0, desc="Number of turns per coil")
+        self.add_input("N_nom", 0.0, units="rpm", desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
         self.add_input("con_angle", 0.0, units="deg", desc="Geometry constraint status")
