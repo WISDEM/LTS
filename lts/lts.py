@@ -17,26 +17,24 @@ class LTS_Cost(om.ExplicitComponent):
         self.add_input("mass_SC", 0.0, units="kg", desc="Magnet mass")
         self.add_input("mass_structural", 0.0, units="kg", desc="Structural mass")
 
-        self.add_input("system_coverage", 0.0, desc="Fraction of system that is captured with model, which should then be used to scale mass and cost")
+        self.add_input("mass_adder", 0.0, units="kg", desc="Mass to add to total for unaccounted elements")
+        self.add_input("cost_adder", 0.0, units="USD", desc="Cost to add to total for unaccounted elements")
+        
         # Outputs
         self.add_output("mass_total", 0.0, units="kg", desc="Structural mass")
         self.add_output("cost_total", 0.0, units="USD", desc="Total cost")
         self.declare_partials("*", "*", method="fd")
 
     def compute(self, inputs, outputs):
-        # Material cost as a function of material mass and specific cost of material
-        coeff = 1.0 / inputs["system_coverage"]
+        outputs["mass_total"] = (inputs["mass_copper"] + inputs["mass_iron"] +
+                                 inputs["mass_SC"] + inputs["mass_structural"] +
+                                 inputs["mass_adder"])
 
-        outputs["mass_total"] = coeff * (
-            inputs["mass_copper"] + inputs["mass_iron"] + inputs["mass_SC"] + inputs["mass_structural"]
-        )
-
-        outputs["cost_total"] = coeff * (
-            inputs["mass_copper"] * inputs["C_Cu"]
-            + inputs["mass_iron"] * inputs["C_Fe"]
-            + inputs["mass_SC"] * inputs["C_NbTi"]
-            + inputs["mass_structural"] * inputs["C_Fes"]
-        )
+        outputs["cost_total"] = (inputs["mass_copper"] * inputs["C_Cu"] + 
+                                 inputs["mass_iron"] * inputs["C_Fe"] + 
+                                 inputs["mass_SC"] * inputs["C_NbTi"] + 
+                                 inputs["mass_structural"] * inputs["C_Fes"] +
+                                 inputs["cost_adder"])
 
 
 class LTS_Outer_Rotor_Opt(om.Group):
@@ -92,7 +90,8 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("C_NbTi", 0.0, units="USD/kg", desc="Specific cost of Magnet")
 
         ivcs.add_output("U_b", 0.0, units="V", desc="brush voltage ")
-        ivcs.add_output("system_coverage", 0.0, desc="Fraction of system that is captured with model, which should then be used to scale mass and cost")
+        ivcs.add_output("mass_adder", 0.0, units="kg", desc="Mass to add to total for unaccounted elements")
+        ivcs.add_output("cost_adder", 0.0, units="USD", desc="Cost to add to total for unaccounted elements")
 
         # ivcs.add_output("r_strand", 0.0, units="mm", desc="radius of the SC wire strand")
         # ivcs.add_output("k_pf_sc", 0.0, units="mm", desc="packing factor for SC wires")

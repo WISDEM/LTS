@@ -17,6 +17,7 @@ rated_speed[17] = 7.04
 rated_speed[20] = 6.49
 rated_speed[25] = 5.80
 target_eff = 0.97
+fsql = "log.sql"
 
 mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
 
@@ -81,21 +82,25 @@ def save_data(fname, prob):
 
 def load_data(fname, prob):
     # Remove file extension
-    froot = os.path.splitext(fname)[0]
-    
-    df = pd.read_csv(froot + ".csv")
-    
-    for k in range(len(df.index)):
-        key = df["variables"].iloc(k)
-        val = df["values"].iloc(k)
-        units = df["units"].iloc(k)
-        try:
-            prob.set_val(key, val, units=units)
-        except:
-            continue
+    fname = os.path.splitext(fname)[0] + ".csv"
+
+    if os.path.exists(fname):
+        df = pd.read_csv(fname)
+
+        for k in range(len(df.index)):
+            key = df["variables"].iloc[k]
+            units = df["units"].iloc[k]
+            val_str = df["values"].iloc[k]
+            val_str_clean = val_str.replace("[","").replace("]","").strip().replace(" ", ", ")
+            try:
+                #print(key, val_str, val_str_clean)
+                val = np.fromstring(val_str_clean, sep=",")
+                prob.set_val(key, val, units=units)
+            except:
+                continue
 
     return prob
-    
+
 def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, opt_flag=False, restart_flag=True, obj_str="cost", ratingMW=17):
     if output_dir is None:
         output_dir = "outputs"
@@ -114,15 +119,15 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob = om.Problem()
     prob.model = LTS_Outer_Rotor_Opt(modeling_options=modeling_options)
 
-    #prob.driver = om.ScipyOptimizeDriver()
-    #prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
-    #prob.driver.options["maxiter"] = 500 #50
-    prob.driver = om.DifferentialEvolutionDriver()
-    prob.driver.options["max_gen"] = 15
-    prob.driver.options["pop_size"] = 50
-    prob.driver.options["penalty_exponent"] = 3
+    prob.driver = om.ScipyOptimizeDriver()
+    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
+    prob.driver.options["maxiter"] = 500 #50
+    #prob.driver = om.DifferentialEvolutionDriver()
+    #prob.driver.options["max_gen"] = 15
+    #prob.driver.options["pop_size"] = 50
+    #prob.driver.options["penalty_exponent"] = 3
 
-    recorder = om.SqliteRecorder(os.path.join(output_dir, "log.sql"))
+    recorder = om.SqliteRecorder(os.path.join(output_dir, fsql))
     prob.driver.add_recorder(recorder)
     prob.add_recorder(recorder)
     prob.driver.recording_options["excludes"] = ["*_df"]
@@ -134,7 +139,8 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_design_var("delta_em", lower=0.060, upper=0.15, ref=0.08)
     prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
-    prob.model.add_design_var("p", lower=20, upper=30, ref=25)
+    pupper = 30 if ratingMW<19 else 40
+    prob.model.add_design_var("p", lower=20, upper=pupper, ref=25)
     prob.model.add_design_var("h_yr", lower=0.01, upper=0.45, ref=0.1)
     prob.model.add_design_var("l_s", lower=1, upper=1.75)
     prob.model.add_design_var("alpha", lower=0.1, upper=1)
@@ -152,10 +158,10 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_constraint("E_p_ratio", upper=1.20)
     prob.model.add_constraint("B_coil_max", lower=6.0)
     prob.model.add_constraint("Coil_max_ratio", upper=1.2)  # Consider user-defined limit instead of load line
-    prob.model.add_constraint("B_rymax", upper=2.1)
+    prob.model.add_constraint("B_rymax", upper=2.3)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
-    prob.model.add_constraint("Critical_current_ratio",upper=1.2)
+    prob.model.add_constraint("Critical_current_ratio",upper=1.5)
     if not obj_str.lower() in ['eff','efficiency']:
         prob.model.add_constraint("gen_eff", lower=0.97)
 
@@ -181,11 +187,9 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
 
         # ## Initial design variables for a PMSG designed for a 15MW turbine
         print(ratingMW, rated_speed[ratingMW], target_torque)
-        prob["system_coverage"] = 0.63
-        prob["P_rated"] = ratingMW * 1e6
-        prob["T_rated"] = target_torque
+        prob["mass_adder"] = 77e3   # 77t, could maybe increase a bit at 25MW
+        prob["cost_adder"] = 700e3  # 700k, could maybe increase a bit at 25MW
         prob["E_p_target"] = 3300.0
-        prob["N_nom"] = rated_speed[ratingMW]
         prob["D_a"] = 9.0
         prob["delta_em"] = 0.1248916 #0.07114809
         prob["h_s"] = 0.1 #0.26448025
@@ -232,6 +236,11 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
 
         if restart_flag:
             prob = load_data(os.path.join(output_dir, "LTS_output"), prob)
+
+        # Have to set these last in case we initiatlized from a different rating
+        prob["P_rated"] = ratingMW * 1e6
+        prob["T_rated"] = target_torque
+        prob["N_nom"] = rated_speed[ratingMW]
 
     else:
         prob = copy_data(prob_in, prob)
@@ -345,93 +354,94 @@ def write_all_data(prob, output_dir=None):
 
     save_data(os.path.join(output_dir, "LTS_output"), prob)
 
+    ratingMW = float(prob.get_val("P_rated", units="MW"))
     raw_data = [
-        ["Rating",                        "P_rated",                prob.get_val("P_rated", units="MW"), "MW", ""],
-        ["Armature diameter",             "D_a",                    prob.get_val("D_a", units="m"), "m", "(5-9)"],
-        ["Field coil diameter",           "D_sc",                   prob.get_val("D_sc", units="m"), "m", ""],
-        ["Airgap lenth",                  "delta_em",               prob.get_val("delta_em", units="mm"), "mm", "(60-150)"],
-        ["Stack length",                  "l_s",                    prob.get_val("l_s", units="m"), "m", "(1-1.75)"],
-        ["l_eff_rotor",                   "l_eff_rotor",            prob.get_val("l_eff_rotor", units="m"), "m", ""],
-        ["l_eff_stator",                  "l_eff_stator",           prob.get_val("l_eff_stator", units="m"), "m", ""],
-        ["l/d ratio",                     "K_rad",                  prob.get_val("K_rad"), "", "(0.15-0.3)"],
-        ["Alpha",                         "alpha",                  prob.get_val("alpha", units="deg"), "deg", "(0.1-1)"],
-        ["delta Alpha",                   "dalpha",                 prob.get_val("dalpha", units="deg"), "deg", "(1-5)"],
-        ["Beta",                          "beta",                   prob.get_val("beta", units="deg"), "deg", ""],
-        ["Geometry constraint",           "con_angle",              prob.get_val("con_angle", units="deg"), "deg", ">0"],
-        ["Slot_aspect_ratio",             "Slot_aspect_ratio",      prob.get_val("Slot_aspect_ratio"), "", "(4-10)"],
-        ["Pole pitch",                    "tau_p",                  prob.get_val("tau_p", units="mm"), "mm", ""],
-        ["Slot pitch",                    "tau_s",                  prob.get_val("tau_s", units="mm"), "mm", ""],
-        ["Stator slot height",            "h_s",                    prob.get_val("h_s", units="mm"), "mm", "(100-400)"],
-        ["Stator slotwidth",              "b_s",                    prob.get_val("b_s", units="mm"), "mm", ""],
-        ["Stator tooth width",            "b_t",                    prob.get_val("b_t", units="mm"), "mm", ""],
-        ["Rotor yoke height",             "h_yr",                   prob.get_val("h_yr", units="mm"), "mm", "(10-450)"],
-        ["Field coil height",             "h_sc",                   prob.get_val("h_sc", units="mm"), "mm", "(30-150)"],
-        ["Field coil width",              "W_sc",                   prob.get_val("W_sc", units="mm"), "mm", ""],
-        ["Outer width",                   "Outer_width",            prob.get_val("Outer_width", units="mm"), "mm", ""],
-        ["Coil separation distance",      "a_m",                    prob.get_val("a_m", units="mm"), "mm", ""],
-        ["Pole pairs",                    "p1",                     prob.get_val("p1"), "", "(20-30)"],
-        ["Generator Terminal voltage",    "E_p",                    prob.get_val("E_p", units="V"), "Volts", ""],
-        ["Terminal voltage target",       "E_p_target",             prob.get_val("E_p_target", units="V"), "Volts", ""],
-        ["Terminal voltage constraint",   "E_p_ratio",              prob.get_val("E_p_ratio"), "", "0.8 < x < 1.2"],
-        ["Stator current",                "I_s",                    prob.get_val("I_s", units="A"), "A", ""],
-        ["Armature slots",                "Slots",                  prob.get_val("Slots"), "slots", ""],
-        ["Armature turns/phase/pole",     "N_c",           np.round(prob.get_val("N_c")),  "turns", "(1-15)"],
-        ["Armature current density",      "J_s",                    prob.get_val("J_s", units="A/mm/mm"), "A/mm^2", ""],
-        ["Resistance per phase",          "R_s",                    prob.get_val("R_s", units="ohm"), "ohm", ""],
-        ["Shear stress",                  "Sigma_shear",            prob.get_val("Sigma_shear", units="kPa"), "kPa", ""],
-        ["Normal stress",                 "Sigma_normal",           prob.get_val("Sigma_normal", units="kPa"), "kPa", ""],
-        ["Torque",                        "Torque_actual",          prob.get_val("Torque_actual", units="MN*m"), "MNm", ""],
-        ["Torque rated target",           "T_rated",                prob.get_val("T_rated", units="MN*m"), "MNm", ""],
-        ["Torque constraint",             "torque_ratio",           prob.get_val("torque_ratio"), "", "1.0 < x < 1.2"],
-        ["Field coil turns",              "N_sc",          np.round(prob.get_val("N_sc")),  "turns", "(1500-3500)"],
-        ["Field coil current",            "I_sc",                   prob.get_val("I_sc", units="A"), "A", "(150-700)"],
-        ["Critical current constraint",   "Critical_current_ratio", prob.get_val("Critical_current_ratio"), "", "<1.2"],
-        ["Layer count",                   "N_l",                    prob.get_val("N_l"), "layers", ""],
-        ["Turns per layer",               "N_sc_layer",             prob.get_val("N_sc_layer"), "turns", ""],
-        ["length per racetrack",          "l_sc",                   prob.get_val("l_sc", units="km"), "km", ""],
-        ["Mass per coil",                 "mass_SC_racetrack",      prob.get_val("mass_SC_racetrack", units="kg"), "kg", ""],
-        ["Total mass of SC coils",        "mass_SC",                prob.get_val("mass_SC", units="t"), "Tons", ""],
-        ["B_rymax",                       "B_rymax",                prob.get_val("B_rymax", units="T"), "Tesla", "<2.1"],
-        ["B_g",                           "B_g",                    prob.get_val("B_g", units="T"), "Tesla", ""],
-        ["B_coil_max",                    "B_coil_max",             prob.get_val("B_coil_max", units="T"), "Tesla", "6<"],
-        ["Coil max ratio",                "Coil_max_ratio",         prob.get_val("Coil_max_ratio"), "", "<1.2"],
-        ["Copper mass",                   "mass_copper",            prob.get_val("mass_copper", units="t"), "Tons", ""],
-        ["Iron mass",                     "mass_iron",              prob.get_val("mass_iron", units="t"), "Tons", ""],
-        ["Total active mass",             "mass_active",            prob.get_val("mass_active", units="t"), "Tons", ""],
-        ["Efficiency",                    "gen_eff",                prob.get_val("gen_eff")*100, "%", "97<="],
-        ["Rotor disc thickness",          "t_rdisc",                prob.get_val("t_rdisc", units="mm"), "mm", "(25-500)"],
-        ["Rotor yoke thickness",          "h_yr_s",                 prob.get_val("h_yr_s", units="mm"), "mm", "(25-500)"],
-        ["Stator disc thickness",         "t_sdisc",                prob.get_val("t_sdisc", units="mm"), "mm", "(25-500)"],
-        ["Stator yoke thickness",         "h_ys",                   prob.get_val("h_ys", units="mm"), "mm", "(25-500)"],
-        ["Rotor radial deflection",       "u_ar",                   prob.get_val("u_ar", units="mm"), "mm", ""],
-        ["Rotor radial limit",            "u_allowable_r",          prob.get_val("u_allowable_r", units="mm"), "mm", ""],
-        ["Rotor radial constraint",       "U_rotor_radial_constraint", prob.get_val("U_rotor_radial_constraint"), "", "<1"],
-        ["Rotor axial deflection",        "y_ar",                   prob.get_val("y_ar", units="mm"), "mm", ""],
-        ["Rotor axial limit",             "y_allowable_r",          prob.get_val("y_allowable_r", units="mm"), "mm", ""],
-        ["Rotor axial constraint",        "U_rotor_axial_constraint", prob.get_val("U_rotor_axial_constraint"), "", "<1"],
-        ["Rotor torsional twist",         "twist_r",                prob.get_val("twist_r", units="deg"), "deg", ""],
-        ["Stator radial deflection",      "u_as",                   prob.get_val("u_as", units="mm"), "mm", ""],
-        ["Stator radial limit",           "u_allowable_s",          prob.get_val("u_allowable_s", units="mm"), "mm", ""],
-        ["Stator radial constraint",      "U_stator_radial_constraint", prob.get_val("U_stator_radial_constraint"), "", "<1"],
-        ["Stator axial deflection",       "y_as",                   prob.get_val("y_as", units="mm"), "mm", ""],
-        ["Stator axial limit",            "y_allowable_s",          prob.get_val("y_allowable_s", units="mm"), "mm", ""],
-        ["Stator axial constraint",       "U_stator_axial_constraint", prob.get_val("U_stator_axial_constraint"), "", "<1"],
-        ["Stator torsional twist",        "twist_s",                prob.get_val("twist_s", units="deg"), "deg", ""],
-        ["Rotor structural mass",         "Structural_mass_rotor",  prob.get_val("Structural_mass_rotor", units="t"), "tons", ""],
-        ["Stator structural mass",        "Structural_mass_stator", prob.get_val("Structural_mass_stator", units="t"), "tons", ""],
-        ["Total structural mass",         "mass_structural",        prob.get_val("mass_structural", units="t"), "tons", ""],
-        ["Total generator mass",          "mass_total",             prob.get_val("mass_total", units="t"), "tons", ""],
-        ["Total generator cost",          "cost_total",             prob.get_val("cost_total", units="USD")/1000., "k$", ""]
+        ["Rating",                        "P_rated",                ratingMW, "MW", ""],
+        ["Armature diameter",             "D_a",                    float(prob.get_val("D_a", units="m")), "m", "(5-9)"],
+        ["Field coil diameter",           "D_sc",                   float(prob.get_val("D_sc", units="m")), "m", ""],
+        ["Airgap lenth",                  "delta_em",               float(prob.get_val("delta_em", units="mm")), "mm", "(60-150)"],
+        ["Stack length",                  "l_s",                    float(prob.get_val("l_s", units="m")), "m", "(1-1.75)"],
+        ["l_eff_rotor",                   "l_eff_rotor",            float(prob.get_val("l_eff_rotor", units="m")), "m", ""],
+        ["l_eff_stator",                  "l_eff_stator",           float(prob.get_val("l_eff_stator", units="m")), "m", ""],
+        ["l/d ratio",                     "K_rad",                  float(prob.get_val("K_rad")), "", ""],
+        ["Alpha",                         "alpha",                  float(prob.get_val("alpha", units="deg")), "deg", "(0.1-1)"],
+        ["delta Alpha",                   "dalpha",                 float(prob.get_val("dalpha", units="deg")), "deg", "(1-5)"],
+        ["Beta",                          "beta",                   float(prob.get_val("beta", units="deg")), "deg", ""],
+        ["Geometry constraint",           "con_angle",              float(prob.get_val("con_angle", units="deg")), "deg", ">0"],
+        ["Slot_aspect_ratio",             "Slot_aspect_ratio",      float(prob.get_val("Slot_aspect_ratio")), "", ""],
+        ["Pole pitch",                    "tau_p",                  float(prob.get_val("tau_p", units="mm")), "mm", ""],
+        ["Slot pitch",                    "tau_s",                  float(prob.get_val("tau_s", units="mm")), "mm", ""],
+        ["Stator slot height",            "h_s",                    float(prob.get_val("h_s", units="mm")), "mm", "(100-400)"],
+        ["Stator slotwidth",              "b_s",                    float(prob.get_val("b_s", units="mm")), "mm", ""],
+        ["Stator tooth width",            "b_t",                    float(prob.get_val("b_t", units="mm")), "mm", ""],
+        ["Rotor yoke height",             "h_yr",                   float(prob.get_val("h_yr", units="mm")), "mm", "(10-450)"],
+        ["Field coil height",             "h_sc",                   float(prob.get_val("h_sc", units="mm")), "mm", "(30-150)"],
+        ["Field coil width",              "W_sc",                   float(prob.get_val("W_sc", units="mm")), "mm", ""],
+        ["Outer width",                   "Outer_width",            float(prob.get_val("Outer_width", units="mm")), "mm", ""],
+        ["Coil separation distance",      "a_m",                    float(prob.get_val("a_m", units="mm")), "mm", ""],
+        ["Pole pairs",                    "p1",                     float(prob.get_val("p1")), "", "(20-30)"],
+        ["Generator Terminal voltage",    "E_p",                    float(prob.get_val("E_p", units="V")), "Volts", ""],
+        ["Terminal voltage target",       "E_p_target",             float(prob.get_val("E_p_target", units="V")), "Volts", ""],
+        ["Terminal voltage constraint",   "E_p_ratio",              float(prob.get_val("E_p_ratio")), "", "0.8 < x < 1.2"],
+        ["Stator current",                "I_s",                    float(prob.get_val("I_s", units="A")), "A", ""],
+        ["Armature slots",                "Slots",                  float(prob.get_val("Slots")), "slots", ""],
+        ["Armature turns/phase/pole",     "N_c",           float(np.round(prob.get_val("N_c"))),  "turns", "(1-15)"],
+        ["Armature current density",      "J_s",                    float(prob.get_val("J_s", units="A/mm/mm")), "A/mm^2", ""],
+        ["Resistance per phase",          "R_s",                    float(prob.get_val("R_s", units="ohm")), "ohm", ""],
+        ["Shear stress",                  "Sigma_shear",            float(prob.get_val("Sigma_shear", units="kPa")), "kPa", ""],
+        ["Normal stress",                 "Sigma_normal",           float(prob.get_val("Sigma_normal", units="kPa")), "kPa", ""],
+        ["Torque",                        "Torque_actual",          float(prob.get_val("Torque_actual", units="MN*m")), "MNm", ""],
+        ["Torque rated target",           "T_rated",                float(prob.get_val("T_rated", units="MN*m")), "MNm", ""],
+        ["Torque constraint",             "torque_ratio",           float(prob.get_val("torque_ratio")), "", "1.0 < x < 1.2"],
+        ["Field coil turns",              "N_sc",          float(np.round(prob.get_val("N_sc"))),  "turns", "(1500-3500)"],
+        ["Field coil current",            "I_sc",                   float(prob.get_val("I_sc", units="A")), "A", "(150-700)"],
+        ["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
+        ["Layer count",                   "N_l",                    float(prob.get_val("N_l")), "layers", ""],
+        ["Turns per layer",               "N_sc_layer",             float(prob.get_val("N_sc_layer")), "turns", ""],
+        ["length per racetrack",          "l_sc",                   float(prob.get_val("l_sc", units="km")), "km", ""],
+        ["Mass per coil",                 "mass_SC_racetrack",      float(prob.get_val("mass_SC_racetrack", units="kg")), "kg", ""],
+        ["Total mass of SC coils",        "mass_SC",                float(prob.get_val("mass_SC", units="t")), "Tons", ""],
+        ["B_rymax",                       "B_rymax",                float(prob.get_val("B_rymax", units="T")), "Tesla", "<2.1"],
+        ["B_g",                           "B_g",                    float(prob.get_val("B_g", units="T")), "Tesla", ""],
+        ["B_coil_max",                    "B_coil_max",             float(prob.get_val("B_coil_max", units="T")), "Tesla", "6<"],
+        ["Coil max ratio",                "Coil_max_ratio",         float(prob.get_val("Coil_max_ratio")), "", "<1.2"],
+        ["Copper mass",                   "mass_copper",            float(prob.get_val("mass_copper", units="t")), "Tons", ""],
+        ["Iron mass",                     "mass_iron",              float(prob.get_val("mass_iron", units="t")), "Tons", ""],
+        ["Total active mass",             "mass_active",            float(prob.get_val("mass_active", units="t")), "Tons", ""],
+        ["Efficiency",                    "gen_eff",                float(prob.get_val("gen_eff"))*100, "%", "97<="],
+        ["Rotor disc thickness",          "t_rdisc",                float(prob.get_val("t_rdisc", units="mm")), "mm", "(25-500)"],
+        ["Rotor yoke thickness",          "h_yr_s",                 float(prob.get_val("h_yr_s", units="mm")), "mm", "(25-500)"],
+        ["Stator disc thickness",         "t_sdisc",                float(prob.get_val("t_sdisc", units="mm")), "mm", "(25-500)"],
+        ["Stator yoke thickness",         "h_ys",                   float(prob.get_val("h_ys", units="mm")), "mm", "(25-500)"],
+        ["Rotor radial deflection",       "u_ar",                   float(prob.get_val("u_ar", units="mm")), "mm", ""],
+        ["Rotor radial limit",            "u_allowable_r",          float(prob.get_val("u_allowable_r", units="mm")), "mm", ""],
+        ["Rotor radial constraint",       "U_rotor_radial_constraint", float(prob.get_val("U_rotor_radial_constraint")), "", "<1"],
+        ["Rotor axial deflection",        "y_ar",                   float(prob.get_val("y_ar", units="mm")), "mm", ""],
+        ["Rotor axial limit",             "y_allowable_r",          float(prob.get_val("y_allowable_r", units="mm")), "mm", ""],
+        ["Rotor axial constraint",        "U_rotor_axial_constraint", float(prob.get_val("U_rotor_axial_constraint")), "", "<1"],
+        ["Rotor torsional twist",         "twist_r",                float(prob.get_val("twist_r", units="deg")), "deg", ""],
+        ["Stator radial deflection",      "u_as",                   float(prob.get_val("u_as", units="mm")), "mm", ""],
+        ["Stator radial limit",           "u_allowable_s",          float(prob.get_val("u_allowable_s", units="mm")), "mm", ""],
+        ["Stator radial constraint",      "U_stator_radial_constraint", float(prob.get_val("U_stator_radial_constraint")), "", "<1"],
+        ["Stator axial deflection",       "y_as",                   float(prob.get_val("y_as", units="mm")), "mm", ""],
+        ["Stator axial limit",            "y_allowable_s",          float(prob.get_val("y_allowable_s", units="mm")), "mm", ""],
+        ["Stator axial constraint",       "U_stator_axial_constraint", float(prob.get_val("U_stator_axial_constraint")), "", "<1"],
+        ["Stator torsional twist",        "twist_s",                float(prob.get_val("twist_s", units="deg")), "deg", ""],
+        ["Rotor structural mass",         "Structural_mass_rotor",  float(prob.get_val("Structural_mass_rotor", units="t")), "tons", ""],
+        ["Stator structural mass",        "Structural_mass_stator", float(prob.get_val("Structural_mass_stator", units="t")), "tons", ""],
+        ["Total structural mass",         "mass_structural",        float(prob.get_val("mass_structural", units="t")), "tons", ""],
+        ["Total generator mass",          "mass_total",             float(prob.get_val("mass_total", units="t")), "tons", ""],
+        ["Total generator cost",          "cost_total",             float(prob.get_val("cost_total", units="USD"))/1000., "k$", ""]
     ]
 
     df = pd.DataFrame(raw_data, columns=["Parameters", "Symbol", "Values", "Units", "Limit"])
-    df.to_excel(os.path.join(output_dir, "Optimized_LTSG_" + str("P_rated", prob.get_val("P_rated"[0units="m"), ] / 1e6) + "_MW.xlsx"))
+    df.to_excel(os.path.join(output_dir, f"Optimized_LTSG_{ratingMW}_MW.xlsx"))
 
 def run_all(output_str, opt_flag, obj_str, ratingMW):
     output_dir = os.path.join(mydir, output_str)
 
     # Optimize just magnetrics with GA and then structural with SLSQP
-    prob = optimize_magnetics_design(output_dir=output_dir, opt_flag=opt_flag, obj_str=obj_str, ratingMW=int(ratingMW))
+    prob = optimize_magnetics_design(output_dir=output_dir, opt_flag=opt_flag, obj_str=obj_str, ratingMW=int(ratingMW), restart_flag=True)
     prob_struct = optimize_structural_design(prob_in=prob, output_dir=output_dir, opt_flag=opt_flag)
 
     # Bring all data together
@@ -445,6 +455,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
 
 if __name__ == "__main__":
     opt_flag = True
-    for k in ratings_known:
-        for obj in ["cost", "mass", "eff"]:
-            run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
+    run_all("outputs20-cost", opt_flag, "cost", 20)
+    #for k in ratings_known:
+    #    for obj in ["cost", "mass"]: #, "eff"]:
+    #        run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
