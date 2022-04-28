@@ -1,5 +1,5 @@
 # LTS
-This is a design code for low-temperature superconducting generators for wind turbines developed by Latha Sethuraman at the National Renewable Energy Laboratory with help from Dave Torrey at GE Research
+This is a design code for low-temperature superconducting generators for wind turbines developed by the team of Latha Sethuraman,Garrett Barter and Pietro Bortolotti at the National Renewable Energy Laboratory with help from Dave Torrey at GE Research, 
 
 To run the code, follow these steps
 
