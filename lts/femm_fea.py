@@ -161,7 +161,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
             count = count + 1
         except:
             continue
-
+    Theta_elec=-Theta_elec
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(Theta_elec + np.pi / 6))
     femm.mi_modifycircprop("C-", 1, -I_s * np.sin(Theta_elec - 4 * np.pi / 6))
     femm.mi_modifycircprop("F-", 1, -I_s * np.sin(Theta_elec - 3 * np.pi / 6))
@@ -204,7 +204,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
 
     # Air gap electro-magnetic torque for the full machine
     # Average shear stress for the full machine
-    # print (torque[0],torque[1])
+    print (torque[0],torque[1])
     return torque.mean(), sigma_t.mean()
 
 
@@ -234,7 +234,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
-        self.add_input("N_nom", 0.0, desc="Number of turns per coil")
+        self.add_input("N_nom", 0.0,units='rpm', desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
         self.add_input("con_angle", 0.0, units="deg", desc="Geometry constraint status")
@@ -249,9 +249,9 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("y_Q", 0.0, desc="Slots per pole also pole pitch")
 
         # Outputs
-        self.add_output("B_g", 0.0, desc="Peak air gap flux density ")
-        self.add_output("B_rymax", 0.0, desc="Peak Rotor yoke flux density")
-        self.add_output("B_coil_max", 0.0, desc="Peak flux density in the field coils")
+        self.add_output("B_g", 0.0, units='T',desc="Peak air gap flux density ")
+        self.add_output("B_rymax", 0.0, units='T', desc="Peak Rotor yoke flux density")
+        self.add_output("B_coil_max", 0.0, units='T', desc="Peak flux density in the field coils")
         self.add_output("Torque_actual", 0.0, units="N*m", desc="Shear stress actual")
         self.add_output("Sigma_shear", 0.0, units="Pa", desc="Shear stress")
         self.add_output("Sigma_normal", 0.0, units="Pa", desc="Normal stress")
@@ -718,7 +718,9 @@ class FEMM_Geometry(om.ExplicitComponent):
             # femm.mi_analyze()
             f=2*p1*N_nom/120
             Time =60/(f*2*np.pi)
-            Theta_elec=(theta_tau_s*Time)*2*np.pi*N_nom/60*p1
+            
+            Theta_elec=(theta_tau_s*Time)*2*np.pi*f
+            print (Time, Theta_elec)
             
             try:
 

@@ -379,7 +379,7 @@ class Results(om.ExplicitComponent):
         self.add_input("N_l", 0.0, desc="Number of layers of the SC field coil")
         self.add_input("D_a", 0.0, units="m", desc="Armature diameter ")
         self.add_input("k_w1", 0.0, desc="Winding factor- fundamental harmonic")
-        self.add_input("B_rymax", 0.0, desc="Peak Rotor yoke flux density")
+        self.add_input("B_rymax", 0.0,units='T', desc="Peak Rotor yoke flux density")
         self.add_input("B_g", 0.0, desc="Peak air gap flux density ")
         self.add_input("N_s", 0.0, desc="Number of turns per phase in series")
         self.add_input("N_nom", 0.0, units="rpm", desc="rated speed")

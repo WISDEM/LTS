@@ -96,7 +96,7 @@ def load_data(fname, prob):
 
     return prob
     
-def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, opt_flag=False, restart_flag=True, obj_str="cost", ratingMW=17):
+def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, opt_flag=True, restart_flag=False, obj_str="cost", ratingMW=17):
     if output_dir is None:
         output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
@@ -425,7 +425,7 @@ def write_all_data(prob, output_dir=None):
     ]
 
     df = pd.DataFrame(raw_data, columns=["Parameters", "Symbol", "Values", "Units", "Limit"])
-    df.to_excel(os.path.join(output_dir, "Optimized_LTSG_" + str("P_rated", prob.get_val("P_rated"[0units="m"), ] / 1e6) + "_MW.xlsx"))
+    df.to_excel(os.path.join(output_dir, "Optimized_LTSG_" + str("P_rated_", prob.get_val("P_rated",units="W")/ 1e6) + "_MW.xlsx"))
 
 def run_all(output_str, opt_flag, obj_str, ratingMW):
     output_dir = os.path.join(mydir, output_str)
@@ -444,7 +444,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
-    opt_flag = True
+    opt_flag = False
     for k in ratings_known:
         for obj in ["cost", "mass", "eff"]:
             run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
