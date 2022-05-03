@@ -720,7 +720,6 @@ class FEMM_Geometry(om.ExplicitComponent):
             Time =60/(f*2*np.pi)
             
             Theta_elec=(theta_tau_s*Time)*2*np.pi*f
-            print (Time, Theta_elec)
             
             try:
 
