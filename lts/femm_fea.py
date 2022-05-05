@@ -7,8 +7,16 @@ Created on Fri Dec 31 12:28:24 2021
 import femm
 import numpy as np
 import openmdao.api as om
+import os
+import platform
 
+def myopen():
+    if platform.system().lower() == 'windows':
+        femm.openfemm(1)
+    else:
+        femm.openfemm(winepath=os.environ["WINEPATH"], femmpath=os.environ["FEMMPATH"])
 
+        
 def bad_inputs(outputs):
     outputs["B_g"] = 7
     outputs["B_coil_max"] = 12
@@ -95,7 +103,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
     # This function loads the machine with electrical currents
     theta_p_d = np.rad2deg(theta_p_r)
 
-    femm.openfemm(1)
+    myopen()
     femm.opendocument("coil_design_new.fem")
     femm.mi_modifycircprop("A+", 1, I_s * np.sin(0))
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(1 * np.pi / 6))
@@ -116,7 +124,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
     femm.mo_makeplot(3, 100, "B_t_1.csv", 1)
     femm.mo_clearcontour()
     femm.mo_close()
-    femm.openfemm(1)
+    myopen()
     femm.opendocument("coil_design_new_I1.fem")
     pitch = 1
 
@@ -321,7 +329,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             # alphap_taup_angle_d = np.rad2deg(alphap_taup_angle_r)
 
             # Draw the field coil
-            femm.openfemm(1)
+            myopen()
             femm.newdocument(0)
             femm.mi_probdef(0, "meters", "planar", 1.0e-8, l_s, 30)
 

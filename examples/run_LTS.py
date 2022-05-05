@@ -4,6 +4,12 @@ from lts.structural import LTS_Outer_Rotor_Structural
 import os
 import pandas as pd
 import numpy as np
+import platform
+
+if platform.system().lower() == 'darwin':
+    os.environ["CX_BOTTLE"] = "FEMM"
+    os.environ["WINEPATH"] = "/Users/gbarter/bin/wine"
+    os.environ["FEMMPATH"] = "/Users/gbarter/Library/Application Support/CrossOver/Bottles/FEMM/drive_c/femm42/bin/femm.exe"
 
 ratings_known = [15, 17, 20, 25]
 rotor_diameter = {}
@@ -101,8 +107,7 @@ def load_data(fname, prob):
 
     return prob
 
-
-def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, opt_flag=False, restart_flag=False, obj_str="cost", ratingMW=17):
+def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, opt_flag=False, restart_flag=True, obj_str="cost", ratingMW=17):
     if output_dir is None:
         output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
@@ -436,11 +441,7 @@ def write_all_data(prob, output_dir=None):
     ]
 
     df = pd.DataFrame(raw_data, columns=["Parameters", "Symbol", "Values", "Units", "Limit"])
-
-    df.to_excel(os.path.join(output_dir, "Optimized_LTSG_" + str("P_rated_", prob.get_val("P_rated",units="W")/ 1e6) + "_MW.xlsx"))
-
     df.to_excel(os.path.join(output_dir, f"Optimized_LTSG_{ratingMW}_MW.xlsx"))
-
 
 def run_all(output_str, opt_flag, obj_str, ratingMW):
     output_dir = os.path.join(mydir, output_str)
@@ -459,14 +460,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
-
-    opt_flag = False
-    restart_flag=False
+    opt_flag = False #True
     for k in ratings_known:
-        for obj in ["cost", "mass", "eff"]:
-            run_all(f"outputs{k}-{obj}", opt_flag,obj, k)
-
-    #for k in ratings_known:
-    #    for obj in ["cost", "mass"]: #, "eff"]:
-    #        run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
-
+        for obj in ["cost", "mass"]:
+            run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
