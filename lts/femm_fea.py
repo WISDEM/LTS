@@ -242,6 +242,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
+        self.add_input("load_margin",0.0, desc=" SC coil current loading margin %")
         self.add_input("N_nom", 0.0,units='rpm', desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
@@ -304,6 +305,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         y1, y2, y3, y4, y5, y6, y7, y8 = inputs["field_coil_y"]
         xlabel1, xlabel2 = inputs["field_coil_xlabel"]
         ylabel1, ylabel2 = inputs["field_coil_ylabel"]
+        load_margin=float(inputs["load_margin"])
 
         # Build the geometry of the generator sector
         if (alpha_d <= 0) or (float(inputs["con_angle"]) < 0):
@@ -750,8 +752,8 @@ class FEMM_Geometry(om.ExplicitComponent):
                 # Populate openmdao outputs
                 # Max current from manufacturer of superconducting coils, quadratic fit
                 # outputs["margin_I_c"] = 3.5357 * B_coil_max ** 2.0 - 144.79 * B_coil_max + 1116.0
-
-                outputs["margin_I_c"] = 3.5357 * B_o ** 2.0 - 144.79 * B_o + 1116.0
+                
+                outputs["margin_I_c"] = a * B_o ** 2.0 - 241.32 * B_o + c-(1000-load_margin*1000)
 
                 outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
                 # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
