@@ -38,8 +38,6 @@ class LTS_Cost(om.ExplicitComponent):
 
 
 class LTS_Outer_Rotor_Opt(om.Group):
-    def initialize(self):
-        self.options.declare("modeling_options")
 
     def setup(self):
         # self.linear_solver = lbgs = om.LinearBlockJac()  # om.LinearBlockGS()
@@ -48,7 +46,6 @@ class LTS_Outer_Rotor_Opt(om.Group):
         # nlbgs.options["atol"] = 1e-2
         # nlbgs.options["rtol"] = 1e-8
         # nlbgs.options["iprint"] = 2
-        modeling_options = self.options["modeling_options"]
 
         ivcs = om.IndepVarComp()
         ivcs.add_output("P_rated", 0.0, units="W", desc="Rated Power")
@@ -100,7 +97,7 @@ class LTS_Outer_Rotor_Opt(om.Group):
 
         self.add_subsystem("ivcs", ivcs, promotes=["*"])
         self.add_subsystem("sys", md.LTS_active(), promotes=["*"])
-        self.add_subsystem("geom", FEMM_Geometry(modeling_options=modeling_options), promotes=["*"])
+        self.add_subsystem("geom", FEMM_Geometry(), promotes=["*"])
         self.add_subsystem("results", md.Results(), promotes=["*"])
         self.add_subsystem("struct", LTS_Outer_Rotor_Structural(), promotes=["*"])
         self.add_subsystem("cost", LTS_Cost(), promotes=["*"])

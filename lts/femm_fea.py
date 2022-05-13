@@ -15,7 +15,7 @@ def myopen():
         femm.openfemm(1)
     else:
         femm.openfemm(winepath=os.environ["WINEPATH"], femmpath=os.environ["FEMMPATH"])
-
+    femm.smartmesh(0)
         
 def bad_inputs(outputs):
     outputs["B_g"] = 7
@@ -103,7 +103,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
     # This function loads the machine with electrical currents
     theta_p_d = np.rad2deg(theta_p_r)
 
-    myopen()
+    #myopen()
     femm.opendocument("coil_design_new.fem")
     femm.mi_modifycircprop("A+", 1, I_s * np.sin(0))
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(1 * np.pi / 6))
@@ -124,7 +124,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
     femm.mo_makeplot(3, 100, "B_t_1.csv", 1)
     femm.mo_clearcontour()
     femm.mo_close()
-    myopen()
+    #myopen()
     femm.opendocument("coil_design_new_I1.fem")
     pitch = 1
 
@@ -212,18 +212,14 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
 
     # Air gap electro-magnetic torque for the full machine
     # Average shear stress for the full machine
-    print (torque[0],torque[1])
+    #print (torque[0],torque[1])
     return torque.mean(), sigma_t.mean()
 
 
 class FEMM_Geometry(om.ExplicitComponent):
     # This openmdao component builds the geometry of one sector of the LTS generator in pyfemm and runs the analysis
 
-    def initialize(self):
-        self.options.declare("modeling_options")
-
     def setup(self):
-        self.output_dir = self.options["modeling_options"]["output_dir"]
 
         # Discrete inputs
         self.add_discrete_input("q", 2, desc="slots_per_pole")
@@ -764,3 +760,6 @@ class FEMM_Geometry(om.ExplicitComponent):
             except:
 
                 outputs = bad_inputs(outputs)
+
+            femm.closefemm()
+            
