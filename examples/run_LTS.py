@@ -11,7 +11,8 @@ if platform.system().lower() == 'darwin':
     os.environ["WINEPATH"] = "/Users/gbarter/bin/wine"
     os.environ["FEMMPATH"] = "/Users/gbarter/Library/Application Support/CrossOver/Bottles/FEMM/drive_c/femm42/bin/femm.exe"
 
-ratings_known = [15, 17, 20, 25]
+#ratings_known = [15, 17, 20, 25]
+ratings_known = [17]
 rotor_diameter = {}
 rotor_diameter[15] = 242.24
 rotor_diameter[17] = 257.88
@@ -164,7 +165,8 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_constraint("B_rymax", upper=2.3)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
-    prob.model.add_constraint("Critical_current_ratio",upper=1.5)
+    prob.model.add_constraint("Critical_current_ratio",upper=1.2)
+    #prob.model.add_constraint("Critical_current_ratio",upper=1.2)
     if not obj_str.lower() in ['eff','efficiency']:
         prob.model.add_constraint("gen_eff", lower=0.97)
 
@@ -462,10 +464,11 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     # Write to xlsx and csv files
     write_all_data(prob, output_dir=output_dir)
     prob.model.list_outputs(val=True, hierarchical=True)
-    cleanup_femm_files(mydir)
+    #cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
     opt_flag = True
     for k in ratings_known:
-        for obj in ["cost", "mass"]:
+#        for obj in ["cost", "mass"]:
+         for obj in ["cost"]:
             run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
