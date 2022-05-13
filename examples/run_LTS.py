@@ -140,13 +140,13 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
 
     #prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
     #prob.model.add_design_var("delta_em", lower=0.060, upper=0.15, ref=0.08)
-    prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
-    prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
+    #prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
+    #prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     pupper = 30 if ratingMW<19 else 40
     prob.model.add_design_var("p", lower=20, upper=pupper, ref=25)
     prob.model.add_design_var("h_yr", lower=0.01, upper=0.45, ref=0.1)
     prob.model.add_design_var("l_s", lower=1, upper=1.75)
-    prob.model.add_design_var("alpha", lower=0.1, upper=1)
+    #prob.model.add_design_var("alpha", lower=0.1, upper=1)
     prob.model.add_design_var("dalpha", lower=1, upper=5)
     prob.model.add_design_var("I_sc", lower=150, upper=700, ref=450)
     prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
@@ -160,7 +160,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_constraint("E_p", lower=0.8 * 3300, ref=3000)
     prob.model.add_constraint("E_p_ratio", upper=1.20)
     prob.model.add_constraint("B_coil_max", lower=6.0)
-    prob.model.add_constraint("Coil_max_ratio", upper=1.2)  # Consider user-defined limit instead of load line
+    #prob.model.add_constraint("Coil_max_ratio", upper=1.2)
     prob.model.add_constraint("B_rymax", upper=2.3)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
@@ -193,11 +193,8 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["mass_adder"] = 77e3   # 77t, could maybe increase a bit at 25MW
         prob["cost_adder"] = 700e3  # 700k, could maybe increase a bit at 25MW
         prob["E_p_target"] = 3300.0
-        prob["h_s"] = 0.1 #0.26448025
         prob["p"] = 30.0
-        prob["h_sc"] = 0.06053662 #0.0798385
         prob["h_yr"] = 0.16824667 #0.4
-        prob["alpha"] = 0.1
         prob["dalpha"] = 1.0
         prob["I_sc"] = 284.90199962 #675.23529314
         prob["N_sc"] = 2811.37208924 #1500.0
@@ -245,10 +242,16 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["delta_em"] = 0.06
         if obj_str.lower() == 'cost':
             prob["D_a"] = 9.0
+            prob["h_s"] = 0.4
+            prob["h_sc"] = 0.03
         elif obj_str.lower() == 'mass':
             prob["D_a"] = 5.0
+            prob["h_s"] = 0.1
+            prob["h_sc"] = 0.150
         else:
             prob["D_a"] = 7.0
+            prob["h_s"] = 0.25
+            prob["h_sc"] = 0.09
 
     else:
         prob = copy_data(prob_in, prob)
