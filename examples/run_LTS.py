@@ -60,8 +60,8 @@ def save_data(fname, prob):
     froot = os.path.splitext(fname)[0]
 
     # Get all OpenMDAO inputs and outputs into a dictionary
-    var_dict = prob.model.list_inputs(val=True, hierarchical=True, prom_name=True, units=True, desc=True, out_stream=None)
-    out_dict = prob.model.list_outputs(val=True, hierarchical=True, prom_name=True, units=True, desc=True, out_stream=None)
+    var_dict = prob.model.list_inputs(prom_name=True, units=True, desc=True, out_stream=None)
+    out_dict = prob.model.list_outputs(prom_name=True, units=True, desc=True, out_stream=None)
     var_dict.extend(out_dict)
 
     data = {}
@@ -115,15 +115,12 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     ratingMW = int(ratingMW)
     target_torque = 1e6 * ratingMW/(np.pi*rated_speed[ratingMW]/30.0)/target_eff
 
-    modeling_options = {}
-    modeling_options["output_dir"] = output_dir
-
     # Clean run directory before the run
     if cleanup_flag:
         cleanup_femm_files(mydir)
 
     prob = om.Problem()
-    prob.model = LTS_Outer_Rotor_Opt(modeling_options=modeling_options)
+    prob.model = LTS_Outer_Rotor_Opt()
 
     prob.driver = om.ScipyOptimizeDriver()
     prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
@@ -141,8 +138,8 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.driver.recording_options["record_desvars"] = True
     prob.driver.recording_options["record_objectives"] = True
 
-    prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
-    prob.model.add_design_var("delta_em", lower=0.060, upper=0.15, ref=0.08)
+    #prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
+    #prob.model.add_design_var("delta_em", lower=0.060, upper=0.15, ref=0.08)
     prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
     prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     pupper = 30 if ratingMW<19 else 40
@@ -196,8 +193,6 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["mass_adder"] = 77e3   # 77t, could maybe increase a bit at 25MW
         prob["cost_adder"] = 700e3  # 700k, could maybe increase a bit at 25MW
         prob["E_p_target"] = 3300.0
-        prob["D_a"] = 9.0
-        prob["delta_em"] = 0.1248916 #0.07114809
         prob["h_s"] = 0.1 #0.26448025
         prob["p"] = 30.0
         prob["h_sc"] = 0.06053662 #0.0798385
@@ -247,6 +242,13 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["P_rated"] = ratingMW * 1e6
         prob["T_rated"] = target_torque
         prob["N_nom"] = rated_speed[ratingMW]
+        prob["delta_em"] = 0.06
+        if obj_str.lower() == 'cost':
+            prob["D_a"] = 9.0
+        elif obj_str.lower() == 'mass':
+            prob["D_a"] = 5.0
+        else:
+            prob["D_a"] = 7.0
 
     else:
         prob = copy_data(prob_in, prob)
@@ -460,7 +462,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
-    opt_flag = False #True
+    opt_flag = True
     for k in ratings_known:
         for obj in ["cost", "mass"]:
             run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
