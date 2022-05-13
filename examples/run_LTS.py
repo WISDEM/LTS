@@ -156,7 +156,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
     prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
-    prob.model.add_design_var("load_margin", lower=0.6, upper=0.8, ref=0.7)
+    prob.model.add_design_var("load_margin", lower=0.84, upper=0.95, ref=0.79)
 
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001, ref=0.1)
@@ -212,7 +212,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["I_s"] = 1945.9858772 #2933.37488172
         prob["J_s"] = 3.0
         prob["l_s"] = 1.11086996 #1.75
-        prob["load_margin"] = 0.7 #1.75
+        prob["load_margin"] = 0.85 #1.75
 
         # Specific costs
         prob["C_Cu"] = 10.3  #  https://markets.businessinsider.com/commodities/copper-price
