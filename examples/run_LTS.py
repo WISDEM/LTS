@@ -11,8 +11,7 @@ if platform.system().lower() == 'darwin':
     os.environ["WINEPATH"] = "/Users/gbarter/bin/wine"
     os.environ["FEMMPATH"] = "/Users/gbarter/Library/Application Support/CrossOver/Bottles/FEMM/drive_c/femm42/bin/femm.exe"
 
-#ratings_known = [15, 17, 20, 25]
-ratings_known = [17]
+ratings_known = [15, 17, 20, 25]
 rotor_diameter = {}
 rotor_diameter[15] = 242.24
 rotor_diameter[17] = 257.88
@@ -469,6 +468,5 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
 if __name__ == "__main__":
     opt_flag = True
     for k in ratings_known:
-#        for obj in ["cost", "mass"]:
-         for obj in ["cost"]:
+        for obj in ["cost", "mass"]:
             run_all(f"outputs{k}-{obj}", opt_flag, obj, k)
