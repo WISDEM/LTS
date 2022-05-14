@@ -68,6 +68,7 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("I_s", 0.0, units="A", desc="Armature current")
         ivcs.add_output("J_s", 0.0, units="A/mm/mm", desc="Armature current density")
         ivcs.add_output("l_s", 0.0, units="m", desc="Stator core length")
+        
 
         ivcs.add_discrete_output("m", 6, desc="number of phases")
         ivcs.add_discrete_output("q", 2, desc="slots per pole")
