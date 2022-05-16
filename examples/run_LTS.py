@@ -149,7 +149,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_design_var("l_s", lower=1, upper=1.75)
     #prob.model.add_design_var("alpha", lower=0.1, upper=1)
     prob.model.add_design_var("dalpha", lower=1, upper=5)
-    prob.model.add_design_var("I_sc", lower=150, upper=700, ref=450)
+    prob.model.add_design_var("I_sc_in", lower=150, upper=700, ref=450)
     prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
     prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
@@ -198,7 +198,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["p"] = 30.0
         prob["h_yr"] = 0.16824667 #0.4
         prob["dalpha"] = 1.0
-        prob["I_sc"] = 284.90199962 #675.23529314
+        prob["I_sc_in"] = 284.90199962 #675.23529314
         prob["N_sc"] = 2811.37208924 #1500.0
         prob["N_c"] = 2.2532984 #1.0
         prob["I_s"] = 1945.9858772 #2933.37488172
@@ -407,8 +407,8 @@ def write_all_data(prob, output_dir=None):
         ["Torque",                        "Torque_actual",          float(prob.get_val("Torque_actual", units="MN*m")), "MNm", ""],
         ["Torque rated target",           "T_rated",                float(prob.get_val("T_rated", units="MN*m")), "MNm", ""],
         ["Torque constraint",             "torque_ratio",           float(prob.get_val("torque_ratio")), "", "1.0 < x < 1.2"],
-        ["Field coil turns",              "N_sc",          float(np.round(prob.get_val("N_sc"))),  "turns", "(1500-3500)"],
-        ["Field coil current",            "I_sc",                   float(prob.get_val("I_sc", units="A")), "A", "(150-700)"],
+        ["Field coil turns",              "N_sc",                   float(np.round(prob.get_val("N_sc"))),  "turns", "(1500-3500)"],
+        ["Field coil current",            "I_sc_out",               float(prob.get_val("I_sc_out", units="A")), "A", "(150-700)"],
         ["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
         ["Layer count",                   "N_l",                    float(prob.get_val("N_l")), "layers", ""],
         ["Turns per layer",               "N_sc_layer",             float(prob.get_val("N_sc_layer")), "turns", ""],
