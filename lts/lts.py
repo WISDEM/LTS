@@ -19,7 +19,7 @@ class LTS_Cost(om.ExplicitComponent):
 
         self.add_input("mass_adder", 0.0, units="kg", desc="Mass to add to total for unaccounted elements")
         self.add_input("cost_adder", 0.0, units="USD", desc="Cost to add to total for unaccounted elements")
-        
+
         # Outputs
         self.add_output("mass_total", 0.0, units="kg", desc="Structural mass")
         self.add_output("cost_total", 0.0, units="USD", desc="Total cost")
@@ -30,9 +30,9 @@ class LTS_Cost(om.ExplicitComponent):
                                  inputs["mass_SC"] + inputs["mass_structural"] +
                                  inputs["mass_adder"])
 
-        outputs["cost_total"] = (inputs["mass_copper"] * inputs["C_Cu"] + 
-                                 inputs["mass_iron"] * inputs["C_Fe"] + 
-                                 inputs["mass_SC"] * inputs["C_NbTi"] + 
+        outputs["cost_total"] = (inputs["mass_copper"] * inputs["C_Cu"] +
+                                 inputs["mass_iron"] * inputs["C_Fe"] +
+                                 inputs["mass_SC"] * inputs["C_NbTi"] +
                                  inputs["mass_structural"] * inputs["C_Fes"] +
                                  inputs["cost_adder"])
 
@@ -68,7 +68,7 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("I_s", 0.0, units="A", desc="Armature current")
         ivcs.add_output("J_s", 0.0, units="A/mm/mm", desc="Armature current density")
         ivcs.add_output("l_s", 0.0, units="m", desc="Stator core length")
-        
+
 
         ivcs.add_discrete_output("m", 6, desc="number of phases")
         ivcs.add_discrete_output("q", 2, desc="slots per pole")
@@ -77,6 +77,7 @@ class LTS_Outer_Rotor_Opt(om.Group):
         ivcs.add_output("Y", 0.0, desc="coil pitch")
         ivcs.add_output("K_h", 2.0, desc="??")
         ivcs.add_output("K_e", 0.5, desc="??")
+        ivcs.add_output("load_margin", 0.0, desc="SC coil current loading margin %")
 
         ivcs.add_output("rho_Fe", 0.0, units="kg/(m**3)", desc="Electrical Steel density ")
         ivcs.add_output("rho_Copper", 0.0, units="kg/(m**3)", desc="Copper density")

@@ -16,7 +16,7 @@ def myopen():
     else:
         femm.openfemm(winepath=os.environ["WINEPATH"], femmpath=os.environ["FEMMPATH"])
     femm.smartmesh(0)
-        
+
 def bad_inputs(outputs):
     outputs["B_g"] = 7
     outputs["B_coil_max"] = 12
@@ -103,7 +103,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
     # This function loads the machine with electrical currents
     theta_p_d = np.rad2deg(theta_p_r)
 
-    #myopen()
+    myopen()
     femm.opendocument("coil_design_new.fem")
     femm.mi_modifycircprop("A+", 1, I_s * np.sin(0))
     femm.mi_modifycircprop("D+", 1, I_s * np.sin(1 * np.pi / 6))
@@ -124,7 +124,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
     femm.mo_makeplot(3, 100, "B_t_1.csv", 1)
     femm.mo_clearcontour()
     femm.mo_close()
-    #myopen()
+    myopen()
     femm.opendocument("coil_design_new_I1.fem")
     pitch = 1
 
@@ -238,7 +238,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
-        self.add_input("load_margin",0.0, desc=" SC coil current loading margin %")
+        self.add_input("load_margin", 0.0, desc="SC coil current loading margin %")
         self.add_input("N_nom", 0.0,units='rpm', desc="Number of turns per coil")
         self.add_input("delta_em", 0.0, units="m", desc="airgap length ")
         self.add_input("I_s", 0.0, units="A", desc="Generator output phase current")
@@ -724,9 +724,9 @@ class FEMM_Geometry(om.ExplicitComponent):
             # femm.mi_analyze()
             f=2*p1*N_nom/120
             Time =60/(f*2*np.pi)
-            
+
             Theta_elec=(theta_tau_s*Time)*2*np.pi*f
-            
+
             try:
 
                 femm.mi_analyze()
@@ -748,7 +748,7 @@ class FEMM_Geometry(om.ExplicitComponent):
                 # Populate openmdao outputs
                 # Max current from manufacturer of superconducting coils, quadratic fit
                 # outputs["margin_I_c"] = 3.5357 * B_coil_max ** 2.0 - 144.79 * B_coil_max + 1116.0
-                
+
                 outputs["margin_I_c"] = a * B_o ** 2.0 - 241.32 * B_o + c-(1000-load_margin*1000)
 
                 outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
@@ -762,4 +762,3 @@ class FEMM_Geometry(om.ExplicitComponent):
                 outputs = bad_inputs(outputs)
 
             femm.closefemm()
-            

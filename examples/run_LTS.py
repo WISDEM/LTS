@@ -122,13 +122,13 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob = om.Problem()
     prob.model = LTS_Outer_Rotor_Opt()
 
-    prob.driver = om.ScipyOptimizeDriver()
-    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
-    prob.driver.options["maxiter"] = 500 #50
-    #prob.driver = om.DifferentialEvolutionDriver()
-    #prob.driver.options["max_gen"] = 15
-    #prob.driver.options["pop_size"] = 50
-    #prob.driver.options["penalty_exponent"] = 3
+    #prob.driver = om.ScipyOptimizeDriver()
+    #prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
+    #prob.driver.options["maxiter"] = 500 #50
+    prob.driver = om.DifferentialEvolutionDriver()
+    prob.driver.options["max_gen"] = 15
+    prob.driver.options["pop_size"] = 50
+    prob.driver.options["penalty_exponent"] = 3
 
     recorder = om.SqliteRecorder(os.path.join(output_dir, fsql))
     prob.driver.add_recorder(recorder)
@@ -152,7 +152,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
     prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
-    prob.model.add_design_var("load_margin", lower=0.85, upper=0.95, ref=0.79)
+    prob.model.add_design_var("load_margin", lower=0.85, upper=0.95)
 
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001, ref=0.1)
@@ -164,7 +164,6 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_constraint("B_rymax", upper=2.3)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
-    prob.model.add_constraint("Critical_current_ratio",upper=1.2)
     #prob.model.add_constraint("Critical_current_ratio",upper=1.2)
     if not obj_str.lower() in ['eff','efficiency']:
         prob.model.add_constraint("gen_eff", lower=0.97)
@@ -195,15 +194,15 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["cost_adder"] = 700e3  # 700k, could maybe increase a bit at 25MW
         prob["E_p_target"] = 3300.0
         prob["p"] = 30.0
-        prob["h_yr"] = 0.16824667 #0.4
+        prob["h_yr"] = 0.16824667
         prob["dalpha"] = 1.0
-        prob["I_sc"] = 284.90199962 #675.23529314
-        prob["N_sc"] = 2811.37208924 #1500.0
-        prob["N_c"] = 2.2532984 #1.0
-        prob["I_s"] = 1945.9858772 #2933.37488172
+        prob["I_sc"] = 284.90199962
+        prob["N_sc"] = 2811.37208924
+        prob["N_c"] = 2.2532984
+        prob["I_s"] = 1945.9858772
         prob["J_s"] = 3.0
-        prob["l_s"] = 1.11086996 #1.75
-        prob["load_margin"] = 0.85 #1.75
+        prob["l_s"] = 1.11086996
+        prob["load_margin"] = 0.9
 
         # Specific costs
         prob["C_Cu"] = 10.3  #  https://markets.businessinsider.com/commodities/copper-price
@@ -408,6 +407,7 @@ def write_all_data(prob, output_dir=None):
         ["Torque constraint",             "torque_ratio",           float(prob.get_val("torque_ratio")), "", "1.0 < x < 1.2"],
         ["Field coil turns",              "N_sc",          float(np.round(prob.get_val("N_sc"))),  "turns", "(1500-3500)"],
         ["Field coil current",            "I_sc",                   float(prob.get_val("I_sc", units="A")), "A", "(150-700)"],
+        ["Critical current load margin",  "load_margin",            float(prob.get_val("load_margin")), "", "(0.85-0.95)"],
         ["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
         ["Layer count",                   "N_l",                    float(prob.get_val("N_l")), "layers", ""],
         ["Turns per layer",               "N_sc_layer",             float(prob.get_val("N_sc_layer")), "turns", ""],
@@ -464,7 +464,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     # Write to xlsx and csv files
     write_all_data(prob, output_dir=output_dir)
     prob.model.list_outputs(val=True, hierarchical=True)
-    #cleanup_femm_files(mydir)
+    cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
     opt_flag = True
