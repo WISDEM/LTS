@@ -144,13 +144,13 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     #prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
     pupper = 30 if ratingMW<19 else 40
     prob.model.add_design_var("p", lower=20, upper=pupper, ref=25)
-    prob.model.add_design_var("h_yr", lower=0.01, upper=0.45, ref=0.1)
-    prob.model.add_design_var("l_s", lower=1, upper=1.75)
+    prob.model.add_design_var("h_yr", lower=0.05, upper=0.45, ref=0.1)
+    #prob.model.add_design_var("l_s", lower=1, upper=1.75)
     #prob.model.add_design_var("alpha", lower=0.1, upper=1)
-    prob.model.add_design_var("dalpha", lower=1, upper=5)
-    prob.model.add_design_var("I_sc_in", lower=150, upper=700, ref=450)
-    prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
-    prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
+    prob.model.add_design_var("dalpha", lower=1, upper=4)
+    prob.model.add_design_var("I_sc_in", lower=400, upper=700, ref=5e2)
+    prob.model.add_design_var("N_sc", lower=2000, upper=3500, ref=1e3)
+    prob.model.add_design_var("N_c", lower=1, upper=7)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
     prob.model.add_design_var("load_margin", lower=0.85, upper=0.95)
 
@@ -196,12 +196,11 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["p"] = 30.0
         prob["h_yr"] = 0.16824667
         prob["dalpha"] = 1.0
-        prob["I_sc"] = 284.90199962
+        prob["I_sc_in"] = 284.90199962
         prob["N_sc"] = 2811.37208924
         prob["N_c"] = 2.2532984
         prob["I_s"] = 1945.9858772
         prob["J_s"] = 3.0
-        prob["l_s"] = 1.11086996
         prob["load_margin"] = 0.9
 
         # Specific costs
@@ -241,6 +240,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["T_rated"] = target_torque
         prob["N_nom"] = rated_speed[ratingMW]
         prob["delta_em"] = 0.06
+        prob["l_s"] = 1.0
         if obj_str.lower() == 'cost':
             prob["D_a"] = 9.0
             prob["h_s"] = 0.4
@@ -395,7 +395,7 @@ def write_all_data(prob, output_dir=None):
         ["Generator Terminal voltage",    "E_p",                    float(prob.get_val("E_p", units="V")), "Volts", ""],
         ["Terminal voltage target",       "E_p_target",             float(prob.get_val("E_p_target", units="V")), "Volts", ""],
         ["Terminal voltage constraint",   "E_p_ratio",              float(prob.get_val("E_p_ratio")), "", "0.8 < x < 1.2"],
-        ["Stator current",                "I_s",                    float(prob.get_val("I_s", units="A")), "A", ""],
+        ["Stator current",                "I_s",                    float(prob.get_val("I_s", units="A")), "A", "(500-3000)"],
         ["Armature slots",                "Slots",                  float(prob.get_val("Slots")), "slots", ""],
         ["Armature turns/phase/pole",     "N_c",           float(np.round(prob.get_val("N_c"))),  "turns", "(1-15)"],
         ["Armature current density",      "J_s",                    float(prob.get_val("J_s", units="A/mm/mm")), "A/mm^2", ""],
@@ -407,7 +407,7 @@ def write_all_data(prob, output_dir=None):
         ["Torque constraint",             "torque_ratio",           float(prob.get_val("torque_ratio")), "", "1.0 < x < 1.2"],
         ["Field coil turns",              "N_sc",          float(np.round(prob.get_val("N_sc"))),  "turns", "(1500-3500)"],
         ["Field coil current in",         "I_sc_in",                float(prob.get_val("I_sc_in", units="A")), "A", "(150-700)"],
-        ["Field coil current out",        "I_sc_out",               float(prob.get_val("I_sc_out", units="A")), "A", "(150-700)"],
+        ["Field coil current out",        "I_sc_out",               float(prob.get_val("I_sc_out", units="A")), "A", ""],
         ["Critical current load margin",  "load_margin",            float(prob.get_val("load_margin")), "", "(0.85-0.95)"],
         ["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
         ["Layer count",                   "N_l",                    float(prob.get_val("N_l")), "layers", ""],

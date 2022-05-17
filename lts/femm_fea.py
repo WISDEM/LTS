@@ -58,14 +58,16 @@ def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta
 #    )
     femm.mo_smooth("off")
     numelm = femm.mo_numelements()
+    numnode = femm.mo_numnodes()
     bcoil_area = []
-    for k in range(1, numelm):
-        p1, p2, p3, x, y, a, g = femm.mo_getelement(k)
-        mag =np.sqrt(x**2+y**2)
-        if mag >=(radius_sc-0.001) :
+    for k in range(numnode+1):
+        try:
+            x, y = femm.mo_getnode(k)
+        except:
+            continue
+        if np.sqrt(x**2+y**2) >= (radius_sc-1e-3):
             bx, by = femm.mo_getb(x, y)
-            bcoil_area.append((bx ** 2 + by ** 2) ** 0.5)
-
+            bcoil_area.append(np.sqrt(bx ** 2 + by ** 2))
     B_coil_max = max(bcoil_area)
     femm.mo_clearblock()
 
@@ -287,7 +289,7 @@ class FEMM_Geometry(om.ExplicitComponent):
         m = discrete_inputs["m"]
         D_sc = float(inputs["D_sc"])
         N_sc = float(inputs["N_sc"])  # int
-        I_sc = float(inputs["I_sc"])
+        I_sc = float(inputs["I_sc_in"])
         N_c = float(inputs["N_c"])  # int
         delta_em = float(inputs["delta_em"])
         I_s = float(inputs["I_s"])
@@ -750,12 +752,11 @@ class FEMM_Geometry(om.ExplicitComponent):
                 # Max current from manufacturer of superconducting coils, quadratic fit
                 # outputs["margin_I_c"] = 3.5357 * B_coil_max ** 2.0 - 144.79 * B_coil_max + 1116.0
 
-                outputs["margin_I_c"] = a * B_o ** 2.0 - 241.32 * B_o + c-(1000-load_margin*1000)
-
-                outputs["I_sc_out"]=I_sc_out=outputs["margin_I_c"]
+                outputs["margin_I_c"] = outputs["I_sc_out"] = I_sc_out = float(a * B_o ** 2.0 - 241.32 * B_o + c-(1000-load_margin*1000))
+                myopen()
                 femm.opendocument("coil_design_new.fem")
-                femm.mi_modifycircprop("A1+",  1,I_sc_out)
-                femm.mi_modifycircprop("A1-",  1,-1 * I_sc_out)
+                femm.mi_modifycircprop("A1+",  1, I_sc_out)
+                femm.mi_modifycircprop("A1-",  1, -1 * I_sc_out)
                 femm.mi_saveas("coil_design_new.fem")
 
                 femm.mi_analyze()
@@ -771,8 +772,8 @@ class FEMM_Geometry(om.ExplicitComponent):
                 outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(Theta_elec,
                     D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p
                 )
-            except:
-
+            except: #Exception as e:
+                #raise(e)
                 outputs = bad_inputs(outputs)
 
             femm.closefemm()
