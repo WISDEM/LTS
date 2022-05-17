@@ -754,8 +754,8 @@ class FEMM_Geometry(om.ExplicitComponent):
                 
                 outputs["I_sc_out"]=I_sc_out=outputs["margin_I_c"] 
                 femm.opendocument("coil_design_new.fem")
-                femm.mi_modifycircprop("A1+", I_sc_out, 1)
-                femm.mi_modifycircprop("A1-", -1 * I_sc_out, 1)
+                femm.mi_modifycircprop("A1+",  1,I_sc_out)
+                femm.mi_modifycircprop("A1-",  1,-1 * I_sc_out)
                 femm.mi_saveas("coil_design_new.fem")
                 
                 femm.mi_analyze()

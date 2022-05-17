@@ -165,7 +165,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_constraint("B_rymax", upper=2.3)
     prob.model.add_constraint("torque_ratio", lower=1.0)
     prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
-    prob.model.add_constraint("Critical_current_ratio",upper=1.2)
+    #prob.model.add_constraint("Critical_current_ratio",upper=1.2)
     #prob.model.add_constraint("Critical_current_ratio",upper=1.2)
     if not obj_str.lower() in ['eff','efficiency']:
         prob.model.add_constraint("gen_eff", lower=0.97)
