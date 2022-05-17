@@ -235,7 +235,8 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_input("h_s", 0.0, units="m", desc="Slot height ")
         self.add_input("h_yr", 0.0, units="m", desc="rotor yoke height")
         self.add_input("D_sc", 0.0, units="m", desc="field coil diameter ")
-        self.add_input("I_sc", 0.0, units="A", desc="Actual current in the superconducting coils")
+        self.add_input("I_sc_in", 0.0, units="A", desc="Initial current in the superconducting coils")
+        self.add_output("I_sc_out", 0.0, units="A", desc="Actual current in the superconducting coils")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_c", 0.0, desc="Number of turns per coil")
         self.add_input("load_margin", 0.0, desc="SC coil current loading margin %")
@@ -751,7 +752,20 @@ class FEMM_Geometry(om.ExplicitComponent):
 
                 outputs["margin_I_c"] = a * B_o ** 2.0 - 241.32 * B_o + c-(1000-load_margin*1000)
 
-                outputs["Critical_current_ratio"] = I_sc / outputs["margin_I_c"]
+                outputs["I_sc_out"]=I_sc_out=outputs["margin_I_c"]
+                femm.opendocument("coil_design_new.fem")
+                femm.mi_modifycircprop("A1+",  1,I_sc_out)
+                femm.mi_modifycircprop("A1-",  1,-1 * I_sc_out)
+                femm.mi_saveas("coil_design_new.fem")
+
+                femm.mi_analyze()
+
+                # Load and post-process results
+                femm.mi_loadsolution()
+
+                outputs["B_g"], outputs["B_rymax"], B_coil_max, outputs["Sigma_normal"] = run_post_process(
+                    D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n
+                )
                 # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
                 outputs["Coil_max_ratio"] = B_coil_max / B_o
                 outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(Theta_elec,

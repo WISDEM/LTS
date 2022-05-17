@@ -148,7 +148,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.model.add_design_var("l_s", lower=1, upper=1.75)
     #prob.model.add_design_var("alpha", lower=0.1, upper=1)
     prob.model.add_design_var("dalpha", lower=1, upper=5)
-    prob.model.add_design_var("I_sc", lower=150, upper=700, ref=450)
+    prob.model.add_design_var("I_sc_in", lower=150, upper=700, ref=450)
     prob.model.add_design_var("N_sc", lower=1500, upper=3500, ref=1500)
     prob.model.add_design_var("N_c", lower=1, upper=15, ref=8)
     prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
@@ -406,7 +406,8 @@ def write_all_data(prob, output_dir=None):
         ["Torque rated target",           "T_rated",                float(prob.get_val("T_rated", units="MN*m")), "MNm", ""],
         ["Torque constraint",             "torque_ratio",           float(prob.get_val("torque_ratio")), "", "1.0 < x < 1.2"],
         ["Field coil turns",              "N_sc",          float(np.round(prob.get_val("N_sc"))),  "turns", "(1500-3500)"],
-        ["Field coil current",            "I_sc",                   float(prob.get_val("I_sc", units="A")), "A", "(150-700)"],
+        ["Field coil current in",         "I_sc_in",                float(prob.get_val("I_sc_in", units="A")), "A", "(150-700)"],
+        ["Field coil current out",        "I_sc_out",               float(prob.get_val("I_sc_out", units="A")), "A", "(150-700)"],
         ["Critical current load margin",  "load_margin",            float(prob.get_val("load_margin")), "", "(0.85-0.95)"],
         ["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
         ["Layer count",                   "N_l",                    float(prob.get_val("N_l")), "layers", ""],
