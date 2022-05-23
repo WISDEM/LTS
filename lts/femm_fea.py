@@ -26,6 +26,13 @@ def bad_inputs(outputs):
     outputs["Sigma_normal"] = 1.0e3  # 200000
     return outputs
 
+def cleanup_femm_files():
+    clean_dir = os.getcwd()
+    files = os.listdir(clean_dir)
+    for file in files:
+        if file.endswith(".ans") or file.endswith(".fem") or file.endswith(".csv"):
+            os.remove(os.path.join(clean_dir, file))
+
 
 def run_post_process(D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n):
     # After looking at the femm results, this function post-processes them, no electrical load condition
@@ -214,7 +221,7 @@ def B_r_B_t(Theta_elec,D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_
 
     # Air gap electro-magnetic torque for the full machine
     # Average shear stress for the full machine
-    #print (torque[0],torque[1])
+    #print(torque)
     return torque.mean(), sigma_t.mean()
 
 
@@ -313,7 +320,7 @@ class FEMM_Geometry(om.ExplicitComponent):
             slot_radius = D_a * 0.5 - h_s
             yoke_radius = slot_radius - h_yr
             h42 = D_a / 2 - 0.5 * h_s
-            Slots_pp = q * m
+            Slots_pp = float(q * m)
             tau_s = np.pi * D_a / Slots
 
             # bs_taus = 0.45 #UNUSED
@@ -737,10 +744,9 @@ class FEMM_Geometry(om.ExplicitComponent):
                 # Load and post-process results
                 femm.mi_loadsolution()
                 n = 0
-                outputs["B_g"], outputs["B_rymax"], B_coil_max, outputs["Sigma_normal"] = run_post_process(
+                _, _, B_coil_max, _ = run_post_process(
                     D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n
                 )
-                outputs["B_coil_max"] = B_coil_max
                 Load_line_slope = I_sc / B_coil_max
                 # SHOULD STRONGLY CONSIDER A USER DEFINED LIMIT INSTEAD
                 a = 5.8929
@@ -768,6 +774,7 @@ class FEMM_Geometry(om.ExplicitComponent):
                     D_a, radius_sc, h_sc, slot_radius, theta_p_r, alpha_r, beta_r, n
                 )
                 # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
+                outputs["B_coil_max"] = B_coil_max
                 outputs["Coil_max_ratio"] = B_coil_max / B_o
                 outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(Theta_elec,
                     D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p
@@ -777,3 +784,5 @@ class FEMM_Geometry(om.ExplicitComponent):
                 outputs = bad_inputs(outputs)
 
             femm.closefemm()
+            #breakpoint()
+            cleanup_femm_files()

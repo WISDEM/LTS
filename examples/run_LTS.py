@@ -83,7 +83,7 @@ def save_data(fname, prob):
         data["values"].append(var_dict[k][1]["val"])
         data["description"].append(var_dict[k][1]["desc"])
     df = pd.DataFrame(data)
-    df.to_excel(froot + ".xlsx", index=False)
+    #df.to_excel(froot + ".xlsx", index=False)
     df.to_csv(froot + ".csv", index=False)
 
 def load_data(fname, prob):
@@ -95,14 +95,20 @@ def load_data(fname, prob):
 
         for k in range(len(df.index)):
             key = df["variables"].iloc[k]
-            units = df["units"].iloc[k]
+            if key.find("field_coil") >= 0: continue
+            units = str(df["units"].iloc[k])
             val_str = df["values"].iloc[k]
             val_str_clean = val_str.replace("[","").replace("]","").strip().replace(" ", ", ")
             try:
-                #print(key, val_str, val_str_clean)
+                #print("TRY",key, val_str, val_str_clean)
                 val = np.fromstring(val_str_clean, sep=",")
-                prob.set_val(key, val, units=units)
+                if units.lower() in ["nan","unavailable"]:
+                    prob.set_val(key, val)
+                else:
+                    prob.set_val(key, val, units=units)
             except:
+                print("FAIL", key, val_str, val_str_clean)
+                #breakpoint()
                 continue
 
     return prob
@@ -122,13 +128,13 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob = om.Problem()
     prob.model = LTS_Outer_Rotor_Opt()
 
-    #prob.driver = om.ScipyOptimizeDriver()
-    #prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
-    #prob.driver.options["maxiter"] = 500 #50
-    prob.driver = om.DifferentialEvolutionDriver()
-    prob.driver.options["max_gen"] = 15
-    prob.driver.options["pop_size"] = 50
-    prob.driver.options["penalty_exponent"] = 3
+    prob.driver = om.ScipyOptimizeDriver()
+    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
+    prob.driver.options["maxiter"] = 500
+    #prob.driver = om.DifferentialEvolutionDriver()
+    #prob.driver.options["max_gen"] = 15
+    #prob.driver.options["pop_size"] = 60
+    #prob.driver.options["penalty_exponent"] = 3
 
     recorder = om.SqliteRecorder(os.path.join(output_dir, fsql))
     prob.driver.add_recorder(recorder)
@@ -138,21 +144,24 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob.driver.recording_options["record_desvars"] = True
     prob.driver.recording_options["record_objectives"] = True
 
-    #prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
     #prob.model.add_design_var("delta_em", lower=0.060, upper=0.15, ref=0.08)
-    #prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
-    #prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
-    pupper = 30 if ratingMW<19 else 40
+    if obj_str.lower() == "cost":
+        prob.model.add_design_var("D_a", lower=5, upper=9, ref=8)
+        prob.model.add_design_var("h_sc", lower=0.03, upper=0.15, ref=0.06)
+        prob.model.add_design_var("h_s", lower=0.1, upper=0.4, ref=0.1)
+        prob.model.add_design_var("h_yr", lower=0.15, upper=0.3, ref=0.1)
+    pupper = 30 #if ratingMW<19 else 40
     prob.model.add_design_var("p", lower=20, upper=pupper, ref=25)
-    prob.model.add_design_var("h_yr", lower=0.05, upper=0.45, ref=0.1)
     #prob.model.add_design_var("l_s", lower=1, upper=1.75)
     #prob.model.add_design_var("alpha", lower=0.1, upper=1)
     prob.model.add_design_var("dalpha", lower=1, upper=4)
-    prob.model.add_design_var("I_sc_in", lower=400, upper=700, ref=5e2)
+    SCupper = 700 if ratingMW<19 else 800
+    prob.model.add_design_var("I_sc_in", lower=400, upper=SCupper, ref=5e2)
     prob.model.add_design_var("N_sc", lower=2000, upper=3500, ref=1e3)
     prob.model.add_design_var("N_c", lower=1, upper=7)
-    prob.model.add_design_var("I_s", lower=500, upper=3000, ref=1750)
-    prob.model.add_design_var("load_margin", lower=0.85, upper=0.95)
+    Iupper = 3000 if ratingMW<19 else 3500
+    prob.model.add_design_var("I_s", lower=500, upper=Iupper, ref=1750)
+    #prob.model.add_design_var("load_margin", lower=0.85, upper=0.95)
 
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001, ref=0.1)
@@ -174,12 +183,15 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob.model.add_objective("mass_total", ref=1e6)
     elif obj_str.lower() in ['eff','efficiency']:
         prob.model.add_objective("gen_eff", scaler=-1.0)
+    else:
+        print('Objective?', obj_str)
 
     prob.model.approx_totals(method="fd")
 
     prob.setup()
     # --- Design Variables ---
 
+    print(ratingMW, obj_str, rated_speed[ratingMW], target_torque)
     if prob_in is None:
         prob["m"] = 6  # phases
         prob["q"] = 2  # slots per pole per phase
@@ -189,19 +201,16 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["K_e"] = 0.5  # specific hysteresis losses W/kg @ 1.5 T
 
         # ## Initial design variables for a PMSG designed for a 15MW turbine
-        print(ratingMW, rated_speed[ratingMW], target_torque)
         prob["mass_adder"] = 77e3   # 77t, could maybe increase a bit at 25MW
         prob["cost_adder"] = 700e3  # 700k, could maybe increase a bit at 25MW
         prob["E_p_target"] = 3300.0
         prob["p"] = 30.0
-        prob["h_yr"] = 0.16824667
         prob["dalpha"] = 1.0
         prob["I_sc_in"] = 284.90199962
         prob["N_sc"] = 2811.37208924
         prob["N_c"] = 2.2532984
         prob["I_s"] = 1945.9858772
         prob["J_s"] = 3.0
-        prob["load_margin"] = 0.9
 
         # Specific costs
         prob["C_Cu"] = 10.3  #  https://markets.businessinsider.com/commodities/copper-price
@@ -241,18 +250,24 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
         prob["N_nom"] = rated_speed[ratingMW]
         prob["delta_em"] = 0.06
         prob["l_s"] = 1.0
+        prob["load_margin"] = 0.95
         if obj_str.lower() == 'cost':
-            prob["D_a"] = 9.0
-            prob["h_s"] = 0.4
-            prob["h_sc"] = 0.03
+            pass
+            #prob["D_a"] = 9.0
+            #prob["h_s"] = 0.4
+            #prob["h_sc"] = 0.03
+            #prob["h_yr"] = 0.16
         elif obj_str.lower() == 'mass':
             prob["D_a"] = 5.0
             prob["h_s"] = 0.1
             prob["h_sc"] = 0.150
+            #prob["h_yr"] = 0.16
         else:
+            print('Objective?', obj_str)
             prob["D_a"] = 7.0
             prob["h_s"] = 0.25
             prob["h_sc"] = 0.09
+            #prob["h_yr"] = 0.2
 
     else:
         prob = copy_data(prob_in, prob)
@@ -268,7 +283,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     if cleanup_flag:
         cleanup_femm_files(mydir)
 
-    prob.model.list_outputs(val=True, hierarchical=True)
+    #prob.model.list_outputs(val=True, hierarchical=True)
     print("Final solution:")
     print("E_p_ratio", prob["E_p_ratio"])
     # print("con_angle", prob["con_angle"])
@@ -277,7 +292,7 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     print("N_sc", prob["N_sc"])
     print("B_coil_max", prob["B_coil_max"])
     print("l_s", prob["l_s"])
-    print("Torque_actual", prob["Torque_actual"])
+    print("Torque_ratio", prob["torque_ratio"])
 
     return prob
 
@@ -459,7 +474,10 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     prob_struct = optimize_structural_design(prob_in=prob, output_dir=output_dir, opt_flag=opt_flag)
 
     # Bring all data together
-    prob = copy_data(prob_struct, prob)
+    prob["h_yr_s"] = prob_struct["h_yr_s"]
+    prob["h_ys"] = prob_struct["h_ys"]
+    prob["t_rdisc"] = prob_struct["t_rdisc"]
+    prob["t_sdisc"] = prob_struct["t_sdisc"]
     prob.run_model()
 
     # Write to xlsx and csv files
@@ -468,7 +486,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
-    opt_flag = True
+    opt_flag = False
     for k in ratings_known:
         for obj in ["cost", "mass"]:
             run_all(f"outputs{k}-{obj}", opt_flag, obj, k)

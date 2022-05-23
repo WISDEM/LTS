@@ -374,7 +374,7 @@ class Results(om.ExplicitComponent):
         self.add_input("K_h", 2.0, desc="??")
         self.add_input("K_e", 0.5, desc="??")
 
-        self.add_input("I_sc", 0.0, units="A", desc="SC current ")
+        #self.add_input("I_sc_out", 0.0, units="A", desc="SC current ")
         self.add_input("N_sc", 0.0, desc="Number of turns of SC field coil")
         self.add_input("N_l", 0.0, desc="Number of layers of the SC field coil")
         self.add_input("D_a", 0.0, units="m", desc="Armature diameter ")
