@@ -1,6 +1,7 @@
 import openmdao.api as om
 from lts.lts import LTS_Outer_Rotor_Opt
 from lts.structural import LTS_Outer_Rotor_Structural
+from lts.nlopt_driver import NLoptDriver
 import os
 import pandas as pd
 import numpy as np
@@ -128,9 +129,12 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     prob = om.Problem()
     prob.model = LTS_Outer_Rotor_Opt()
 
-    prob.driver = om.ScipyOptimizeDriver()
-    prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
+    prob.driver = NLoptDriver()
+    prob.driver.options['optimizer'] = 'LN_COBYLA'
     prob.driver.options["maxiter"] = 500
+    #prob.driver = om.ScipyOptimizeDriver()
+    #prob.driver.options['optimizer'] = 'COBYLA' #'SLSQP' #
+    #prob.driver.options["maxiter"] = 500
     #prob.driver = om.DifferentialEvolutionDriver()
     #prob.driver.options["max_gen"] = 15
     #prob.driver.options["pop_size"] = 60
@@ -166,14 +170,15 @@ def optimize_magnetics_design(prob_in=None, output_dir=None, cleanup_flag=True, 
     # prob.model.add_constraint("Slot_aspect_ratio", lower=4.0, upper=10.0)  # 11
     prob.model.add_constraint("con_angle", lower=0.001, ref=0.1)
     # Differential evolution driver cannot do double-sided constraints, so have to hack it
-    prob.model.add_constraint("E_p", lower=0.8 * 3300, ref=3000)
-    prob.model.add_constraint("E_p_ratio", upper=1.20)
+    #prob.model.add_constraint("E_p", lower=0.8 * 3300, ref=3000)
+    prob.model.add_constraint("E_p_ratio", lower=0.8, upper=1.20)
+    prob.model.add_constraint("constr_B_g_coil", upper=1.0)
     prob.model.add_constraint("B_coil_max", lower=6.0)
     #prob.model.add_constraint("Coil_max_ratio", upper=1.2)
-    prob.model.add_constraint("B_rymax", upper=2.3)
-    prob.model.add_constraint("torque_ratio", lower=1.0)
-    prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
     #prob.model.add_constraint("Critical_current_ratio",upper=1.2)
+    prob.model.add_constraint("B_rymax", upper=2.3)
+    prob.model.add_constraint("torque_ratio", lower=1.0, upper=1.2)
+    #prob.model.add_constraint("Torque_actual", upper=1.2*target_torque, ref=20e6)
     if not obj_str.lower() in ['eff','efficiency']:
         prob.model.add_constraint("gen_eff", lower=0.97)
 
@@ -406,7 +411,7 @@ def write_all_data(prob, output_dir=None):
         ["Field coil width",              "W_sc",                   float(prob.get_val("W_sc", units="mm")), "mm", ""],
         ["Outer width",                   "Outer_width",            float(prob.get_val("Outer_width", units="mm")), "mm", ""],
         ["Coil separation distance",      "a_m",                    float(prob.get_val("a_m", units="mm")), "mm", ""],
-        ["Pole pairs",                    "p1",                     float(prob.get_val("p1")), "", "(20-30)"],
+        ["Pole pairs",                    "p1",            float(np.round(prob.get_val("p1"))), "", "(20-30)"],
         ["Generator Terminal voltage",    "E_p",                    float(prob.get_val("E_p", units="V")), "Volts", ""],
         ["Terminal voltage target",       "E_p_target",             float(prob.get_val("E_p_target", units="V")), "Volts", ""],
         ["Terminal voltage constraint",   "E_p_ratio",              float(prob.get_val("E_p_ratio")), "", "0.8 < x < 1.2"],
@@ -424,7 +429,7 @@ def write_all_data(prob, output_dir=None):
         ["Field coil current in",         "I_sc_in",                float(prob.get_val("I_sc_in", units="A")), "A", "(150-700)"],
         ["Field coil current out",        "I_sc_out",               float(prob.get_val("I_sc_out", units="A")), "A", ""],
         ["Critical current load margin",  "load_margin",            float(prob.get_val("load_margin")), "", "(0.85-0.95)"],
-        ["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
+        #["Critical current constraint",   "Critical_current_ratio", float(prob.get_val("Critical_current_ratio")), "", "<1.2"],
         ["Layer count",                   "N_l",                    float(prob.get_val("N_l")), "layers", ""],
         ["Turns per layer",               "N_sc_layer",             float(prob.get_val("N_sc_layer")), "turns", ""],
         ["length per racetrack",          "l_sc",                   float(prob.get_val("l_sc", units="km")), "km", ""],
@@ -433,6 +438,7 @@ def write_all_data(prob, output_dir=None):
         ["B_rymax",                       "B_rymax",                float(prob.get_val("B_rymax", units="T")), "Tesla", "<2.1"],
         ["B_g",                           "B_g",                    float(prob.get_val("B_g", units="T")), "Tesla", ""],
         ["B_coil_max",                    "B_coil_max",             float(prob.get_val("B_coil_max", units="T")), "Tesla", "6<"],
+        ["B_g - Coil max constraint",     "constr_B_g_coil",        float(prob.get_val("constr_B_g_coil")), "", "<1.0"],
         ["Coil max ratio",                "Coil_max_ratio",         float(prob.get_val("Coil_max_ratio")), "", "<1.2"],
         ["Copper mass",                   "mass_copper",            float(prob.get_val("mass_copper", units="t")), "Tons", ""],
         ["Iron mass",                     "mass_iron",              float(prob.get_val("mass_iron", units="t")), "Tons", ""],
@@ -486,7 +492,7 @@ def run_all(output_str, opt_flag, obj_str, ratingMW):
     cleanup_femm_files(mydir)
 
 if __name__ == "__main__":
-    opt_flag = False
+    opt_flag = True #False
     for k in ratings_known:
-        for obj in ["cost", "mass"]:
+        for obj in ["cost"]: #, "mass"]:
             run_all(f"outputs{k}-{obj}", opt_flag, obj, k)

@@ -9,7 +9,7 @@ metadata = dict(
     packages=setuptools.find_packages(exclude=["test", "examples"]),
     python_requires=">=3.7",
     zip_safe=True,
-    install_requires=['pyfemm','numpy','openmdao','pandas'],
+    install_requires=['pyfemm','numpy','openmdao','pandas','nlopt'],
     )
 
 setuptools.setup(**metadata)

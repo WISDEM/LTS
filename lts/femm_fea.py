@@ -19,7 +19,7 @@ def myopen():
 
 def bad_inputs(outputs):
     outputs["B_g"] = 7
-    outputs["B_coil_max"] = 12
+    outputs["B_coil_max"] = 1.0
     outputs["B_rymax"] = 5
     outputs["Torque_actual"] = 1.0e6  # 50e6
     outputs["Sigma_shear"] = 1.0e3  # 300000
@@ -271,12 +271,13 @@ class FEMM_Geometry(om.ExplicitComponent):
         self.add_output("Sigma_shear", 0.0, units="Pa", desc="Shear stress")
         self.add_output("Sigma_normal", 0.0, units="Pa", desc="Normal stress")
         self.add_output("margin_I_c", 0.0, units="A", desc="Critical current margin")
-        self.add_output("Critical_current_ratio", 0.0, units="A", desc="Ratio of critical to max current")
+        #self.add_output("Critical_current_ratio", 0.0, units="A", desc="Ratio of critical to max current")
         self.add_output(
             "Coil_max_ratio",
             0.0,
             desc="Ratio of actual to critical coil flux density, usually constrained to be smaller than 1",
         )
+        self.add_output("constr_B_g_coil", 0.0, desc="Ratio of B_g to B_coil_max, should be <1.0")
 
         self.declare_partials("*", "*", method="fd")
 
@@ -288,16 +289,16 @@ class FEMM_Geometry(om.ExplicitComponent):
         alpha_r = np.deg2rad(alpha_d)
         beta_r = np.deg2rad(beta_d)
         h_sc = float(inputs["h_sc"])
-        p1 = float(inputs["p1"])
+        p1 = float(np.round(inputs["p1"]))
         D_a = float(inputs["D_a"])
         h_yr = float(inputs["h_yr"])
         h_s = float(inputs["h_s"])
         q = discrete_inputs["q"]
         m = discrete_inputs["m"]
         D_sc = float(inputs["D_sc"])
-        N_sc = float(inputs["N_sc"])  # int
+        N_sc = float(np.round(inputs["N_sc"]))
         I_sc = float(inputs["I_sc_in"])
-        N_c = float(inputs["N_c"])  # int
+        N_c = float(np.round(inputs["N_c"]))
         delta_em = float(inputs["delta_em"])
         I_s = float(inputs["I_s"])
         Slots = float(inputs["Slots"])
@@ -775,6 +776,7 @@ class FEMM_Geometry(om.ExplicitComponent):
                 )
                 # B_o is the max allowable flux density at the coil, B_coil_max is the max value from femm
                 outputs["B_coil_max"] = B_coil_max
+                outputs["constr_B_g_coil"] = outputs["B_g"] / B_coil_max
                 outputs["Coil_max_ratio"] = B_coil_max / B_o
                 outputs["Torque_actual"], outputs["Sigma_shear"] = B_r_B_t(Theta_elec,
                     D_a, l_s, p1, delta_em, theta_p_r, I_s, theta_b_t, theta_b_s, layer_1, layer_2, Y_q, N_c, tau_p
