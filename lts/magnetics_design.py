@@ -179,6 +179,7 @@ class LTS_active(om.ExplicitComponent):
 
         # Calculating winding factor
         outputs["Slots"] = S = q * 2 * p1 * m
+
         outputs["tau_s"] = tau_s = np.pi * (D_a) / S  # Slot pitch
         outputs["alpha_u"] = alpha_u = p1 * 2 * np.pi / S  # slot angle
         outputs["tau_v"] = tau_p / m
@@ -218,13 +219,16 @@ class LTS_active(om.ExplicitComponent):
         # Stator winding length ,cross-section and resistance
         outputs["l_Cus"] = l_Cus = 8 * l_end + 2 * l_s  # length of a turn
         z = S  # Number of coils
-        # A_slot = h_s * b_s # UNUSED
+        A_slot = h_s * b_s *0.5# UNUSED
         # d_cu = 2 * np.sqrt(A_Cuscalc / pi) # UNUSED
         outputs["A_Cuscalc"] = A_Cuscalc = I_s * 1e-06 / (J_s)
         # k_fill = A_slot / (2 * N_c * A_Cuscalc) # UNUSED
+        
         outputs["N_s"] = N_s = N_c * z / (m)  # turns per phase int(N_c)
-
-        outputs["R_s"] = R_s = resisitivty_Cu * (1 + 20 * 0.00393) * l_Cus * N_s * J_s * 1e6 / (I_s)
+        A_slot = h_s * b_s *0.5# UNUSED
+        outputs["R_s"] = R_s = resisitivty_Cu * (1 + 20 * 0.00393) * l_Cus * N_s /(A_slot*0.65/N_c)
+        
+       
         # print ("Resitance per phase:" ,R_s)
         # r_strand                =0.425e-3
         theta_p_r = tau_p / (R_sc + h_sc)
@@ -433,7 +437,7 @@ class Results(om.ExplicitComponent):
 
         # Calculating  voltage per phase
         om_m = 2 * np.pi * N_nom / 60
-        outputs["E_p"] = E_p = l_s * (D_a * 0.5 * k_w1 * B_g * om_m * N_s) * 3 ** 0.5 * (1 / 2 ** 0.5) * 1.12253
+        outputs["E_p"] = E_p = l_s * (D_a * 0.5 * k_w1 * B_g * om_m * N_s) * (1 /(2 ** 0.5)) * 1.12253*3**0.5
 
         # print ("Voltage and lengths are:",outputs["E_p,l_s )
 
