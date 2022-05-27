@@ -8,8 +8,6 @@ McDonald,A.S. et al. IET Renewable Power Generation(2008),2(1):3 http://dx.doi.o
 
 import numpy as np
 import openmdao.api as om
-from lts.femm_fea import FEMM_Geometry
-from lts.structural import LTS_Outer_Rotor_Structural
 
 
 class LTS_active(om.ExplicitComponent):
@@ -219,13 +217,12 @@ class LTS_active(om.ExplicitComponent):
         # Stator winding length ,cross-section and resistance
         outputs["l_Cus"] = l_Cus = 8 * l_end + 2 * l_s  # length of a turn
         z = S  # Number of coils
-        A_slot = h_s * b_s *0.5# UNUSED
+        A_slot = h_s * b_s *0.5
         # d_cu = 2 * np.sqrt(A_Cuscalc / pi) # UNUSED
         outputs["A_Cuscalc"] = A_Cuscalc = I_s * 1e-06 / (J_s)
         # k_fill = A_slot / (2 * N_c * A_Cuscalc) # UNUSED
         
         outputs["N_s"] = N_s = N_c * z / (m)  # turns per phase int(N_c)
-        A_slot = h_s * b_s *0.5# UNUSED
         outputs["R_s"] = R_s = resisitivty_Cu * (1 + 20 * 0.00393) * l_Cus * N_s /(A_slot*0.65/N_c)
         
        
@@ -340,7 +337,6 @@ class LTS_active(om.ExplicitComponent):
         outputs["l_eff_stator"] = l_s + (a_m + W_sc)
 
         # outputs["A_Cuscalc	= A_Cuscalc = I_n/J_s
-        # A_slot                  = 2*N_c*A_Cuscalc*(10**-6)/k_sfil
         outputs["Slot_aspect_ratio"] = h_s / b_s
 
         # Calculating stator current and electrical loading
